@@ -17,7 +17,7 @@ def build_batch(paths: Sequence[str], transform=None) -> torch.Tensor:
     if transform is None:
         transform = tf.Compose([
                 tf.Resize((256, 256), interpolation=tf.InterpolationMode.BILINEAR),
-                tf.CenterCrop(224, 224)
+                tf.CenterCrop((224, 224)),
                 tf.ToTensor(),
                 tf.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
@@ -56,21 +56,21 @@ def main():
 
     transform_b_128 = tf.Compose([
             tf.Resize((128, 128), interpolation=tf.InterpolationMode.BILINEAR),
-            tf.CenterCrop(224, 224)
+            tf.CenterCrop((224, 224)),
             tf.ToTensor(),
             tf.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
     
     transform_b_512 = tf.Compose([
             tf.Resize((512, 512), interpolation=tf.InterpolationMode.BILINEAR),
-            tf.CenterCrop(224, 224)
+            tf.CenterCrop((224, 224)),
             tf.ToTensor(),
             tf.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
 
     transform_c = tf.Compose([
             tf.Resize((256,256), interpolation=tf.InterpolationMode.BILINEAR),
-            tf.CenterCrop(224, 224)
+            tf.CenterCrop((224, 224)),
             tf.ToTensor(),
             tf.RandomVerticalFlip(p=1.0),
             tf.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

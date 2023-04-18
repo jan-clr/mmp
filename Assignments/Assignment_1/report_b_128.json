@@ -1,37 +1,37 @@
 [
     {
         "image": "images/pacifier.jpg",
-        "class": "safety pin",
-        "score": 9.457391738891602
+        "class": "paintbrush",
+        "score": 6.615400791168213
     },
     {
         "image": "images/koala.jpg",
-        "class": "guenon, guenon monkey",
-        "score": 11.6573486328125
+        "class": "hummingbird",
+        "score": 6.066211700439453
     },
     {
         "image": "images/zoo.jpg",
-        "class": "Arabian camel, dromedary, Camelus dromedarius",
-        "score": 13.136695861816406
+        "class": "orangutan, orang, orangutang, Pongo pygmaeus",
+        "score": 5.7440924644470215
     },
     {
         "image": "images/golden retriever.jpg",
-        "class": "dhole, Cuon alpinus",
-        "score": 12.740203857421875
+        "class": "plastic bag",
+        "score": 6.557003021240234
     },
     {
         "image": "images/rubber duck sculpture.jpg",
-        "class": "toucan",
-        "score": 8.748519897460938
+        "class": "pay-phone, pay-station",
+        "score": 6.629408836364746
     },
     {
         "image": "images/shoehorn.jpg",
-        "class": "cleaver, meat cleaver, chopper",
-        "score": 11.452141761779785
+        "class": "clog, geta, patten, sabot",
+        "score": 8.04464054107666
     },
     {
         "image": "images/rubber ducks.jpg",
-        "class": "confectionery, confectionary, candy store",
-        "score": 8.23526668548584
+        "class": "jack-o'-lantern",
+        "score": 5.841012954711914
     }
 ]

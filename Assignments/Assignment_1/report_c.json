@@ -1,37 +1,37 @@
 [
     {
         "image": "images/pacifier.jpg",
-        "class": "Petri dish",
-        "score": 8.257417678833008
+        "class": "teapot",
+        "score": 8.079035758972168
     },
     {
         "image": "images/koala.jpg",
         "class": "koala, koala bear, kangaroo bear, native bear, Phascolarctos cinereus",
-        "score": 8.668282508850098
+        "score": 8.828499794006348
     },
     {
         "image": "images/zoo.jpg",
-        "class": "Airedale, Airedale terrier",
-        "score": 6.322134017944336
+        "class": "Arabian camel, dromedary, Camelus dromedarius",
+        "score": 7.110105514526367
     },
     {
         "image": "images/golden retriever.jpg",
-        "class": "partridge",
-        "score": 6.333633899688721
+        "class": "golden retriever",
+        "score": 6.624148368835449
     },
     {
         "image": "images/rubber duck sculpture.jpg",
         "class": "toilet seat",
-        "score": 7.540408611297607
+        "score": 7.224327087402344
     },
     {
         "image": "images/shoehorn.jpg",
         "class": "wine bottle",
-        "score": 7.892116546630859
+        "score": 9.177264213562012
     },
     {
         "image": "images/rubber ducks.jpg",
-        "class": "toyshop",
-        "score": 8.012995719909668
+        "class": "candle, taper, wax light",
+        "score": 7.164582252502441
     }
 ]

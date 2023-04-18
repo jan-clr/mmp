@@ -2,36 +2,36 @@
     {
         "image": "images/pacifier.jpg",
         "class": "Petri dish",
-        "score": 6.074587821960449
+        "score": 7.836972236633301
     },
     {
         "image": "images/koala.jpg",
         "class": "koala, koala bear, kangaroo bear, native bear, Phascolarctos cinereus",
-        "score": 8.72561264038086
+        "score": 12.858137130737305
     },
     {
         "image": "images/zoo.jpg",
         "class": "ox",
-        "score": 5.843188285827637
+        "score": 7.473712921142578
     },
     {
         "image": "images/golden retriever.jpg",
-        "class": "golden retriever",
-        "score": 7.4852495193481445
+        "class": "Leonberg",
+        "score": 10.680414199829102
     },
     {
         "image": "images/rubber duck sculpture.jpg",
-        "class": "traffic light, traffic signal, stoplight",
-        "score": 5.453591346740723
+        "class": "scale, weighing machine",
+        "score": 5.31264591217041
     },
     {
         "image": "images/shoehorn.jpg",
-        "class": "chest",
-        "score": 6.525128364562988
+        "class": "fountain pen",
+        "score": 8.321038246154785
     },
     {
         "image": "images/rubber ducks.jpg",
         "class": "piggy bank, penny bank",
-        "score": 10.764031410217285
+        "score": 10.58351993560791
     }
 ]
