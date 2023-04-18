@@ -1,0 +1,16 @@
+Exercise 1.3)
+
+report_a.json
+
+The model identifies the Koala, the Golden Retriever and the Ox in the zoo images correctly. Since the classes don't contain classes that fit the contents of the other images exactly, they are instead classified as similar objects or concepts. 
+Some of these are very fitting, e.g. 'toyshop' for the image containing a lot of rubber ducks, others only vaguely resemble their actual content ('Petri Dish' for the pacifier). 
+
+report_b_{128, 512}.json
+
+Making the images smaller results in the model not being able to identify any of them correctly, probably due to lack of information.
+However, the model performance also deteriorates with larger images, which is probably due to it being trained on 224 by 224 crops of images resized to 256 by 256. The added information only confuses the model and the filters learned by the convolutional layers aren't the correct size for the larger images' bigger features.
+
+report_c.json
+
+Flipping the images vertically results in the same results for images that are vertically symmetrical. Other images however aren't classified correctly.
+The augmentations for the pretrained weights likely don't contain any flips, so the network hasn't learned any invariances concerning orientation of objects.

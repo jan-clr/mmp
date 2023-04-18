@@ -1,0 +1,37 @@
+[
+    {
+        "image": "images/pacifier.jpg",
+        "class": "safety pin",
+        "score": 9.457391738891602
+    },
+    {
+        "image": "images/koala.jpg",
+        "class": "guenon, guenon monkey",
+        "score": 11.6573486328125
+    },
+    {
+        "image": "images/zoo.jpg",
+        "class": "Arabian camel, dromedary, Camelus dromedarius",
+        "score": 13.136695861816406
+    },
+    {
+        "image": "images/golden retriever.jpg",
+        "class": "dhole, Cuon alpinus",
+        "score": 12.740203857421875
+    },
+    {
+        "image": "images/rubber duck sculpture.jpg",
+        "class": "toucan",
+        "score": 8.748519897460938
+    },
+    {
+        "image": "images/shoehorn.jpg",
+        "class": "cleaver, meat cleaver, chopper",
+        "score": 11.452141761779785
+    },
+    {
+        "image": "images/rubber ducks.jpg",
+        "class": "confectionery, confectionary, candy store",
+        "score": 8.23526668548584
+    }
+]
