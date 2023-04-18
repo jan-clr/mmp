@@ -77,8 +77,9 @@
 
         \item See \texttt{report\_c.json}
 
-        Flipping the images vertically results in the same classification for images that exhibit some vertical symmetry. Other images however aren't classified correctly.
+        Flipping the images vertically results in a different (wrong) classification for almost all images besides the koala and the golden retriever.
         The augmentations used during the training of the network likely don't contain any flips, so the network hasn't learned any invariances concerning orientation of objects.
+        As to why the golden retriever and koala were classified correctly anyway, even though the images don't contain any strong vertical symmetry, I can only suspect that the training data perhaps naturally contains images of golden retrievers and koalas on their heads. Considering the nature of these animals, this guess might not be too unlikely.
 
     \end{enumerate}
 \end{document}
