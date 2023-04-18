@@ -1,0 +1,45 @@
+%! Ref-Commands 
+\newcommand*{\fullref}[1]{\hyperref[{#1}]{\textit{\autoref*{#1}\nameref*{#1}}}} 
+\newcommand*{\fullpage}[1]{\hyperref[{#1}]{Seite\pageref*{#1}}} 
+\newcommand*{\fullpages}[1]{\hyperref[{#1}]{Seiten\pageref*{#1}ff}}
+
+%! Math operators and other small conveniences
+\newcommand\thickbar[1]{\accentset{\rule{.6em}{.8pt}}{#1}}
+\DeclareMathOperator{\ggt}{ggT} \DeclareMathOperator{\kgv}{kgV}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor} 
+\renewcommand*{\arraystretch}{0.8}
+\DeclareSIUnit\pixel{px}
+
+\newcommand{\filepath}[2]{\colorbox{lgrey}{#1: \texttt{#2}}\xspace}
+
+%! replace German quotation marks with English ones (I always write the left and right quotes explicitly with the German command variants as they are nice to debug and already in my macros. Then in the end, I can swap them with the desired replacement quotes of my choice) 
+\renewcommand*{\glqq}{``}
+\renewcommand*{\grqq}{''}
+
+\makeatletter
+\gdef\fakultaeta#1{\gdef\@fakultaeta{#1}}
+\def\@fakultaeta{No Faculty}
+\gdef\fakultaetb#1{\gdef\@fakultaetb{#1}}
+\def\@fakultaetb{}
+\gdef\teachers#1{\gdef\@teachers{#1}}
+\def\@teachers{No Instructors}
+% Horizontale Linie mit Abstand zu den Seitenrändern
+\newcommand{\ownline}{\vspace{.7em}\hrule\vspace{.7em}}
+
+% Aufgabenkopf
+\newcommand{\exercise}[1]{\vspace*{0.5cm}\large{\color{dblue}\textbf{Exercise #1}}\normalsize\vspace*{0.5cm}\\}
+
+% Befehl zum Erzeugen des Kopfes
+\newcommand{\head}{
+{\color{dblue}\LARGE\textbf{Multimedia Project} \hfill{SoSe 23}} \\  
+\@fakultaeta\\
+\textsc{\@teachers} \\
+\mbox{} \\
+\ownline
+    {\LARGE \color{dblue}\textbf{\@title}} \\
+    \mbox{} \\
+    {\large \@author} \\
+}
+\makeatother
+

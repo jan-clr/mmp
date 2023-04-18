@@ -1,0 +1,49 @@
+
+\graphicspath{{./images/}} % custom paths for folders in that graphics can befound
+
+\sisetup{ % setup for siunitx  
+    detect-all, 
+    locale=US, % language setup for siunitx 
+    range-phrase={ \text{to} }, % word that is put into an si range
+    range-units = single, % better display of error ranges
+    per-mode=symbol-or-fraction, % more dynamic frac usage in inline/displaymathmode 
+    separate-uncertainty, % for better +- , \pm when including an error range 
+}
+
+\hypersetup { 
+    colorlinks=true, linkcolor=dblue, % dark blue linkcolor
+    urlcolor=dblue, % dark blue linkcolor citecolor=dblue, % dark blue linkcolor
+    pdfauthor = {Jan Claar}, % write details into the expanded file properties
+    pdftitle = {Measurement of Droplets in Vaporized Fluids using Machine Learning Techniques}, 
+    pdfkeywords = {neural networks, ai, physics, machine learning}, pdfsubject = {Bachelor Thesis} 
+}
+
+\captionsetup[sub]{font=footnotesize}
+
+\AtBeginDocument{ 
+    \let\mathbb\relax
+    \DeclareMathAlphabet\PazoBB{U}{fplmbb}{m}{n} \newcommand{\mathbb}{\PazoBB} 
+}
+%more options to the \mathbb command
+
+\setminted[]{ 
+    xleftmargin=0cm, 
+    xrightmargin=0cm, 
+    frame=single, 
+    framesep=.25cm,
+    linenos, 
+    tabsize=2, 
+    breaklines, 
+    breakafter=.], 
+    breakaftersymbolpre= , 
+}
+%configure the minted code-highlighting style
+
+\addbibresource{literature.bib} %initialize bibtex with correct file
+
+\NiceMatrixOptions{ 
+    code-for-first-row = \color{dblue} , 
+    code-for-last-row =\color{dblue} , 
+    code-for-first-col = \color{dblue} , 
+    code-for-last-col = \color{dblue} 
+}
