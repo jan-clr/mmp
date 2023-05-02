@@ -1,5 +1,6 @@
 .venv
 data
+dataset_mmp
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
