@@ -53,7 +53,7 @@ def get_dataloader(
 , is_train=False) -> DataLoader:
     """Exercise 3.2d"""
     dataset = MMP_Dataset(path_to_data, image_size)
-    return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+    return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, drop_last=is_train, shuffle=is_train)
 
 
 def main():
@@ -66,3 +66,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
