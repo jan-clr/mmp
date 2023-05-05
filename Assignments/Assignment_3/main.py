@@ -4,8 +4,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torchvision.models as m
 from tqdm import tqdm
-from dataset import get_dataloader, MMP_Dataset
+from dataset import get_dataloader
 from torch.utils.tensorboard.writer import SummaryWriter
+from datetime import datetime
 
 
 class MmpNet(nn.Module):
@@ -40,7 +41,7 @@ def train_epoch(
     loader: DataLoader,
     criterion: nn.Module,
     optimizer: optim.Optimizer,
-    device='cpu'
+    device='cpu',
 ):
     """Exercise 2.3b
 
@@ -51,6 +52,8 @@ def train_epoch(
     """
     model.train()
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
+    total_loss = 0
+    total_batches = 0
 
     for b_nr, (input, target) in loop:
         input, target = input.to(device), target.to(device)
@@ -62,6 +65,10 @@ def train_epoch(
         loss.backward()
         optimizer.step()
 
+        total_loss += loss.item()
+        total_batches += 1
+
+    return total_loss / total_batches
 
 def eval_epoch(model: nn.Module, loader: DataLoader, device='cpu') -> float:
     """Exercise 2.3c
@@ -90,21 +97,23 @@ def main():
     """Put your code for Exercise 3.3 in here"""
     # Should be global, don't wanna risk tripping up testing
     DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-    LR = 1e-3
+    LR = 1e-2
     BATCH_SIZE = 16
     NUM_WORKERS = 8
-    EPOCHS = 5
+    EPOCHS = 50
 
     model = MmpNet(2).to(DEVICE)
     crit, opt = get_criterion_optimizer(model=model, lr=LR)
     train_loader = get_dataloader(is_train=True, path_to_data='./dataset_mmp/train', batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, image_size=256)
     val_loader = get_dataloader(is_train=False, path_to_data='./dataset_mmp/val', batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, image_size=256)
-    writer = SummaryWriter(log_dir='')
+    writer = SummaryWriter(log_dir=f'runs/lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
 
     for epoch in tqdm(range(EPOCHS)):
-        train_epoch(model=model, loader=train_loader, criterion=crit, optimizer=opt, device=DEVICE)
+        train_loss = train_epoch(model=model, loader=train_loader, criterion=crit, optimizer=opt, device=DEVICE)
+        writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
         acc = eval_epoch(model=model, loader=val_loader, device=DEVICE)
         print(f"Epoch: {epoch}, accuracy: {acc}")
+        writer.add_scalar(tag='Validation/Accuracy', scalar_value=acc, global_step=epoch)
  
 
 if __name__ == "__main__":

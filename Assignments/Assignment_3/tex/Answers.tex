@@ -1,0 +1,86 @@
+\documentclass[
+    headings=optiontohead,              % allows double headers
+    12pt,                               % fontsize 
+    DIV=13,                             % koma script diveider amount. tells koma how much of the site can be written to
+    twoside=false,                      % if set to true, automatically formats as book style with different left and right pages
+    open=right,                         % starting page on twosided texts 
+    BCOR=00mm,                          % correction that accounts for the center of the pages being glued in
+    toc=bibliographynumbered,            % bibliography gets a number and is listed in the table of contents
+    parskip=half,                       % paragraph spacing
+]{scrarticle}
+
+\usepackage{fontspec}
+\usepackage[english]{babel}                     % font that supports English
+\usepackage{upgreek}                            % non-cursive Greek letters
+\usepackage[stretch=10,shrink=10,protrusion=true,expansion=true,final]{microtype} % prettier block format
+\usepackage{hyperref}                           % links for everything
+\usepackage{color}                              % allows for setting in different colors
+\usepackage[autooneside=false,automark]{scrlayer-scrpage} % page-style with "Kolumnentitel" (title of current chapter is displayed at the top)
+\usepackage{amsfonts,amstext,amsmath,amsthm, amssymb} % better math mode (\mathrm and \text) and symbols
+\usepackage[sb]{libertinus}                     % use the font libertinus (needs to be installed from the web)
+%\usepackage[slantedGreek]{libertinust1math}     % math mode improvement for libertinus
+\usepackage{siunitx}                            % physical units setting
+\usepackage{icomma}                             % commas in lists get extra space if needed                        
+\usepackage{xspace}                             % works to improve own commands and provides "\xspace"-command, that puts a space if needed
+\usepackage{ifthen}                             % more control over non-obligatory parameters
+\usepackage{titling}                            % get title values as macros
+\usepackage[onehalfspacing]{setspace}           % control the spacing between lines and in enumeration lists
+\usepackage[backend=biber, style=phys, biblabel=brackets, url=true]{biblatex} % citations with "modern" backend and an physics-accepted citation style
+\usepackage{graphicx}                           % work with graphics 
+\usepackage{ragged2e}                           % ragged-commands (when no block format is wanted)
+\usepackage{pdfpages}                           % allows including of pdfs into this pdf
+\usepackage{booktabs}                           % better table formatting
+\usepackage{multicol}                           % allows for the definition of multi-columns in tables
+\usepackage{multirow}                           % allows for the definition of multirow-tables instead of just multicolumn
+\usepackage[section]{placeins}                  % provides the command "\FloatBarrier" to control the end of floatable regions for figures/tables
+\usepackage{float}                              % provides the "H" option for forcing placement of a figure
+\usepackage{floatpag}                           % make it possible for float-pages to not have a page number
+\usepackage{url}                                % sometimes needed by biblatex, technically no longer needed
+\usepackage{minted}                             % nice code highlighting (needs Python Package to compile!!)
+\usepackage{mathtools}                          % more math control possibilities
+\usepackage{eucal}                              % Different mathcal alphabet
+\usepackage[autostyle=true]{csquotes}           % context-sensitive-quotes -> quotation marks that are set correctly for the context
+\usepackage{physics}                            % bra-ket and more
+\usepackage{nicematrix}                         % label row/cols on matrix
+\usepackage{caption}                            % caption of different environments
+\usepackage{subcaption}                         % subcaptions for figures
+\usepackage{enumitem}                           % better enums
+\usepackage{tikz}                               % Abbildungen zeichnen
+    \usetikzlibrary{positioning}
+\usepackage[toc, page]{appendix}
+\setmonofont{Fira Code NF}
+%\usepackage{parskip}
+
+\input{../../../texconfig/config.tex}                                  % another file that holds the package/document configuration
+\input{../../../texconfig/format.tex}                                  % another file that holds format information
+\input{../../../texconfig/commands.tex}                                  % another file that holds format information
+
+\title{Assignment Submission 3}
+\author{Jan Claar}
+\date{\today}
+\fakultaeta{Multimedia Computing Lab}
+\teachers{Prof. Dr. Rainer Lienhart, Katja Ludwig, Julian Lorenz}
+
+\begin{document}
+    \head 
+
+    \exercise{3.1}
+
+    The maximum number of annotations for a single image in the training dataset is 5. There are 5 images with this number of annotations, one of which is shown in Figure~\ref{fig:annotation_max}. The chosen image is simply the first one encountered when iterating over all images in the directory.\\
+    Since the filenames are obtained via the \mintinline{python}{glob.glob} function, the order is arbitrary and the image encountered by \mintinline{python}|get_maximum_annotation_image()| may be different for different environments.
+
+    \begin{figure}[htpb]
+        \begin{center}
+            \includegraphics[width=0.8\textwidth]{../00152479_annotated.jpg}
+        \end{center}
+        \caption{One of the Images with the maximum number of Annotations (5). Bounding boxes are drawn in red.}
+        \label{fig:annotation_max}
+    \end{figure}
+    
+    \exercise{3.3}
+
+    The final accuracy after 50 Epochs of Training was \SI{0.86}{} with the best accuracy being \SI{0.868}{}. 
+
+    The accuracy is not a good measurment for the model performance in this particular setup. The reason for this is that the training and validation set are highly imbalanced, when only differentiating between images containing one or multiple people. For both datasets, around 77\% the images contain only one person (see output of \texttt{\footnotesize{distribution.py}}), so a network labeling all images as such would already have a 77\% accuracy. The trained network in this is case is only a little better than that. A class wise accuracy or anything that accounts for this imbalance would be a more relevant performance metric.
+
+\end{document}
