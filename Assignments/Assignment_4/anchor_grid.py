@@ -9,7 +9,7 @@ def get_anchor_grid(
     anchor_widths: Sequence[float],
     aspect_ratios: Sequence[float],
 ) -> np.ndarray:
-    grid = np.zeros((len(anchor_widths), len(aspect_ratios), num_rows, num_cols, 4))
+    grid = np.zeros((len(anchor_widths), len(aspect_ratios), num_rows, num_cols, 4), dtype=int)
     #with np.nditer(grid, flags=['multi_index'], op_flags=['readwrite']) as it:
     #    for coord in it:
     #        width_idx, scale_idx, row, col, i = it.multi_index
@@ -19,10 +19,10 @@ def get_anchor_grid(
             for row in range(num_rows):
                 for col in range(num_cols):
                     grid[width_idx, aspect_idx, row, col, :] = [
-                                (col + 0.5) * scale_factor - 0.5 * width,
-                                (row + 0.5) * scale_factor - 0.5 * width * aspect,
-                                (col + 0.5) * scale_factor + 0.5 * width,
-                                (row + 0.5) * scale_factor + 0.5 * width * aspect,
+                                int((col + 0.5) * scale_factor - 0.5 * width),
+                                int((row + 0.5) * scale_factor - 0.5 * width * aspect),
+                                int((col + 0.5) * scale_factor + 0.5 * width),
+                                int((row + 0.5) * scale_factor + 0.5 * width * aspect),
                             ]
 
     return grid
