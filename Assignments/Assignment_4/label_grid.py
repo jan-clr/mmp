@@ -41,6 +41,7 @@ def draw_anchor(img, anchor, color=(0, 0, 255)):
     cv2.rectangle(img, (anchor[0], anchor[1]), (anchor[2], anchor[3]), color, 1)
     return img
 
+
 def main():
     img = cv2.imread('./dataset_mmp/train/00542033.jpg')
     annotations = read_groundtruth_file('./dataset_mmp/train/00542033.gt_data.txt')
