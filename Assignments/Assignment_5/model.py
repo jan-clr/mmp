@@ -6,10 +6,12 @@ import torch.nn.functional as F
 
 
 class MmpNet(torch.nn.Module):
-    def __init__(self, num_sizes: int, num_aspect_ratios: int):
+    def __init__(self, num_sizes: int, num_aspect_ratios: int, imsize: int=224, scale_factor: int=8):
         super(MmpNet, self).__init__()
         self.num_sizes = num_sizes
         self.num_aspect_ratios = num_aspect_ratios
+        self.imsize = imsize
+        self.scale_factor = scale_factor
 
         self.backbone = m.mobilenet_v2(weights=m.MobileNet_V2_Weights.IMAGENET1K_V2).features
         self.classifier = nn.Sequential(
@@ -21,7 +23,7 @@ class MmpNet(torch.nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self.backbone(x)
         # upsample to match label grid dimensions
-        features = F.interpolate(features, size=28)
+        features = F.interpolate(features, size=int(self.imsize // self.scale_factor))
         output = self.classifier(features)
         bs, out_chan, h, w = output.shape
         out_shape = (bs, 2, self.num_sizes, self.num_aspect_ratios, h, w)
@@ -30,10 +32,11 @@ class MmpNet(torch.nn.Module):
 
 def main():
     model = MmpNet(6, 6)
-    input = torch.randn(1, 3, 224, 224)
+    input = torch.randn(1, 3, 224, 224) 
     output = model(input)
     print(output.shape)
 
 
 if __name__ == '__main__':
     main()
+

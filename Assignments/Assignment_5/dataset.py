@@ -66,9 +66,9 @@ class MMP_Dataset(torch.utils.data.Dataset):
                 box = np.array(annotation[i])
                 box = (box * (self.size / pad_to)).astype(int)
                 annotation[i] = AnnotationRect.fromarray(box)
-            label_grid = torch.Tensor(get_label_grid(self.anchor_grid, annotation, self.min_iou))
+            label_grid = torch.tensor(get_label_grid(self.anchor_grid, annotation, self.min_iou), dtype=torch.long)
         else:
-            label_grid = torch.Tensor(0)
+            label_grid = torch.tensor(0)
 
         # Get image id
         img_path = Path(img_file)
