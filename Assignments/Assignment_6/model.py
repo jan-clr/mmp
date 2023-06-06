@@ -17,6 +17,7 @@ class MmpNet(torch.nn.Module):
         self.classifier = nn.Sequential(
                 # Final output channels = num_classes * num_sizes * num_aspect_ratios * (imsize / scale_factor)
                 nn.Conv2d(in_channels=1280, out_channels=(2 * self.num_sizes * self.num_aspect_ratios), kernel_size=3, padding=1),
+                nn.ReLU6()
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
