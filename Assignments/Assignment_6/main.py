@@ -152,7 +152,7 @@ def main():
     WEIGHT_DECAY = 0.0005
     BATCH_SIZE = 16
     NUM_WORKERS = 8
-    EPOCHS = 10
+    EPOCHS = 100
     
     IMSIZE = 224
     SCALE_FACTOR = 8
@@ -161,7 +161,7 @@ def main():
     MINING_ENABLED = False
 
     RUN_ROOT_DIR = './runs'
-    run_dir = f'{RUN_ROOT_DIR}/test_upconv_sf_{SCALE_FACTOR}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/upconv_sf_{SCALE_FACTOR}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
@@ -173,20 +173,22 @@ def main():
 
     optimizer = optim.SGD(model.parameters(), lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
 
-
     writer = SummaryWriter(log_dir=run_dir)
 
     best_ap = 0
     for epoch in range(EPOCHS):
         train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE)
-        ap = evaluate(model, val_dataloader, DEVICE, anchor_grid)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
-        writer.add_scalar('Validation/mAP', ap, global_step=epoch)
-        print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
-        if ap > best_ap:
-            best_ap = ap
-            torch.save(model.state_dict(), f'{run_dir}/best_model.pth')
-            print(f"New best model saved with mAP {best_ap:.4f}")
+        if epoch % 5 == 0:
+            ap = evaluate(model, val_dataloader, DEVICE, anchor_grid)
+            writer.add_scalar('Validation/mAP', ap, global_step=epoch)
+            print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
+            if ap > best_ap:
+                best_ap = ap
+                torch.save(model.state_dict(), f'{run_dir}/best_model.pth')
+                print(f"New best model saved with mAP {best_ap:.4f}")
+        else:
+            print(f"Epoch {epoch} - Training Loss: {train_loss:.4f}")
 
     model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
     evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'{run_dir}/test_results.txt')
