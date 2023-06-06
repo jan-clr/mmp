@@ -4,9 +4,34 @@ import numpy as np
 import pandas as pd
 import cv2
 from label_grid import iou
+import time
 
 
 def non_maximum_suppression(
+    boxes_scores: Sequence[Tuple[AnnotationRect, float]], threshold: float
+) -> List[Tuple[AnnotationRect, float]]:
+    """Exercise 6.1
+    @param boxes_scores: Sequence of tuples of annotations and scores
+    @param threshold: Threshold for NMS
+
+    @return: A list of tuples of the remaining boxes after NMS together with their scores
+    """
+    final_boxes_scores = []
+    boxes_scores = sorted(boxes_scores, key=lambda x: x[1], reverse=True)
+    while len(boxes_scores) > 1:
+        box1, score1 = boxes_scores[0]
+        final_boxes_scores.append((box1, score1))
+        boxes_scores = boxes_scores[1:]
+        for i in range(len(boxes_scores) - 1, -1, -1):
+            box2, score2 = boxes_scores[i]
+            box_iou = iou(box1, box2)
+            if box_iou > threshold:
+                del boxes_scores[i]
+
+    return final_boxes_scores
+
+
+def non_maximum_suppression_old(
     boxes_scores: Sequence[Tuple[AnnotationRect, float]], threshold: float
 ) -> List[Tuple[AnnotationRect, float]]:
     """Exercise 6.1

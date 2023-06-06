@@ -19,7 +19,6 @@ def batch_inference(
     model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3
 ) -> List[List[Tuple[AnnotationRect, float]]]:
     images = images.to(device)
-    model = model.to(device)
     model.eval()
     with torch.no_grad():
         output = model(images)
@@ -43,11 +42,10 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
     You decide which arguments this function should receive
     """
     det_boxes_scores = {}
-    with torch.no_grad():   
-        loop = tqdm(enumerate(loader), total=len(loader), leave=False)
-        for b_nr, (input, target, img_id) in loop:
-            detected = batch_inference(model, input, device, anchor_grid, threshold)    
-            det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
+    loop = tqdm(enumerate(loader), total=len(loader), leave=False)
+    for b_nr, (input, target, img_id) in loop:
+        detected = batch_inference(model, input, device, anchor_grid, threshold)    
+        det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
     
     ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.annotations)
     return ap
