@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch.utils.tensorboard.writer import SummaryWriter
 from datetime import datetime
+from evallib import calculate_ap_pr
 
 
 def batch_inference(
@@ -34,23 +35,41 @@ def batch_inference(
     return batch_boxes_scores
 
 
-def evaluate(...) -> float:
+def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, threshold:float = 0.3) -> float:
     """Evaluates a specified model on the whole validation dataset.
 
     @return: AP for the validation set as a float.
 
     You decide which arguments this function should receive
     """
-    raise NotImplementedError()
+    det_boxes_scores = {}
+    with torch.no_grad():   
+        loop = tqdm(enumerate(loader), total=len(loader), leave=False)
+        for b_nr, (input, target, img_id) in loop:
+            detected = batch_inference(model, input, device, anchor_grid, threshold)    
+            det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
+    
+    ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.annotations)
+    return ap
+            
 
-
-def evaluate_test(...):
+def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, out_file: str, threshold:float = 0.3): 
     """Generates predictions on the provided test dataset.
     This function saves the predictions to a text file.
     
     You decide which arguments this function should receive
     """
-    raise NotImplementedError()
+    det_boxes_scores = {}
+    with torch.no_grad():   
+        loop = tqdm(enumerate(loader), total=len(loader), leave=False)
+        for b_nr, (input, target, img_id) in loop:
+            detected = batch_inference(model, input, device, anchor_grid, threshold)    
+            det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
+
+    with open(out_file, 'w') as f:
+        for img_id, boxes_scores in det_boxes_scores.items():
+            for box, score in boxes_scores:
+                f.write(f"{img_id} {box.x} {box.y} {box.w} {box.h} {score}\n")
 
 
 def step(
@@ -109,7 +128,7 @@ def train_epoch(
     criterion: nn.Module,
     optimizer: optim.Optimizer,
     mining_enabled: bool = False,
-    device='cpu',
+    device=torch.device('cpu'),
 ):
     model.train()
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
@@ -128,43 +147,14 @@ def train_epoch(
     return total_loss / total_batches
 
 
-def eval_epoch(model: nn.Module, loader: DataLoader, criterion: nn.Module, device='cpu') -> Tuple[float, float]:
-    """    
-    @param model: The model that should be evaluated
-    @param loader: The DataLoader that contains the evaluation data
-
-    @return: Returns the IoU of the target class and the loss over the full validation dataset as a float."""
-    model.eval()
-    intersect = 0
-    union = 0
-    total_loss = 0
-    total_batches = 0
-    with torch.no_grad():   
-        loop = tqdm(enumerate(loader), total=len(loader), leave=False)
-        for b_nr, (input, target, img_id) in loop:
-            input, target = input.to(device), target.to(device)
-            preds = model(input)
-            loss = criterion(preds, target)
-            pred_class = torch.argmax(preds, dim=1)
-
-            total_loss += loss.item()
-            total_batches += 1
-
-            intersect += torch.sum(torch.logical_and(pred_class, target))
-            union += torch.sum(torch.logical_or(pred_class, target))
-            #print(intersect, union)
-
-    return float(intersect / union), float(total_loss / total_batches)
-
-
 def main():
-    DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     LR = 1e-2
     MOMENTUM = 0.9
     WEIGHT_DECAY = 0.0005
     BATCH_SIZE = 16
     NUM_WORKERS = 8
-    EPOCHS = 50
+    EPOCHS = 10
     
     IMSIZE = 224
     SCALE_FACTOR = 8
@@ -172,22 +162,33 @@ def main():
     ASPECT_RATIOS = [1.0, 1.5, 2.0, 3.0]
     MINING_ENABLED = False
 
+    RUN_ROOT_DIR = './runs'
+    run_dir = f'{RUN_ROOT_DIR}/test_upconv_sf_{SCALE_FACTOR}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
     train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False)
-    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False)
+    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=True)
+    test_dataloader = get_dataloader('./dataset_mmp/test/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=True)
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
     criterion = torch.nn.CrossEntropyLoss() if not MINING_ENABLED else torch.nn.CrossEntropyLoss(reduction='none')
-    val_criterion = torch.nn.CrossEntropyLoss()
 
     optimizer = optim.SGD(model.parameters(), lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
 
-    writer = SummaryWriter(log_dir=f'runs/negmining_{MINING_ENABLED}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
 
+    writer = SummaryWriter(log_dir=run_dir)
+
+    best_ap = 0
     for epoch in range(EPOCHS):
         train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE)
+        ap = evaluate(model, val_dataloader, DEVICE, anchor_grid)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
-        acc, val_loss = eval_epoch(model=model, loader=val_dataloader, criterion=val_criterion, device=DEVICE)
-        print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation Loss: {val_loss:.4f} - Validation IoU: {acc:.4f}")
-        writer.add_scalar(tag='Validation/IoU', scalar_value=acc, global_step=epoch)
-        writer.add_scalar(tag='Validation/Loss', scalar_value=val_loss, global_step=epoch)
+        writer.add_scalar('Validation/mAP', ap, global_step=epoch)
+        print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
+        if ap > best_ap:
+            best_ap = ap
+            torch.save(model.state_dict(), f'{run_dir}/best_model.pth')
+            print(f"New best model saved with mAP {best_ap:.4f}")
+
+    model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
+    evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'{run_dir}/test_results.txt')

@@ -15,15 +15,14 @@ class MmpNet(torch.nn.Module):
 
         self.backbone = m.mobilenet_v2(weights=m.MobileNet_V2_Weights.IMAGENET1K_V2).features
         self.classifier = nn.Sequential(
+                # Deconvolution that upsamples the feature map to 28 from 7
+                nn.ConvTranspose2d(in_channels=1280, out_channels=256, kernel_size=4, stride=4),
                 # Final output channels = num_classes * num_sizes * num_aspect_ratios * (imsize / scale_factor)
-                nn.Conv2d(in_channels=1280, out_channels=(2 * self.num_sizes * self.num_aspect_ratios), kernel_size=3, padding=1),
-                nn.ReLU6()
+                nn.Conv2d(in_channels=256, out_channels=(2 * self.num_sizes * self.num_aspect_ratios), kernel_size=1),
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self.backbone(x)
-        # upsample to match label grid dimensions
-        features = F.interpolate(features, size=int(self.imsize // self.scale_factor))
         output = self.classifier(features)
         bs, out_chan, h, w = output.shape
         out_shape = (bs, 2, self.num_sizes, self.num_aspect_ratios, h, w)
