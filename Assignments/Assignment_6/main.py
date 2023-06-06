@@ -178,7 +178,8 @@ def main():
 
     best_ap = 0
     for epoch in range(EPOCHS):
-        train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE)
+        #train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE)
+        train_loss = 0
         ap = evaluate(model, val_dataloader, DEVICE, anchor_grid)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
         writer.add_scalar('Validation/mAP', ap, global_step=epoch)
