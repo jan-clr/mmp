@@ -192,3 +192,7 @@ def main():
 
     model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
     evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'{run_dir}/test_results.txt')
+
+
+if __name__ == '__main__':
+    main()
