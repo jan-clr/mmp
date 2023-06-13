@@ -17,7 +17,7 @@ from pprint import pprint
 
 
 def batch_inference(
-    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3
+    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3, filter_uncertain = True
 ) -> List[List[Tuple[AnnotationRect, float]]]:
     images = images.to(device)
     model.eval()
@@ -31,6 +31,8 @@ def batch_inference(
                 boxes_scores.append((AnnotationRect(*anchor_grid[idx]), output[i][1][idx]))
             batch_boxes_scores.append(boxes_scores)
 
+    if filter_uncertain:
+        batch_boxes_scores = [[(box, score) for box, score in img_boxes_scores if score > 0.5] for img_boxes_scores in batch_boxes_scores]
     batch_boxes_scores = [non_maximum_suppression(boxes_scores, threshold) for boxes_scores in batch_boxes_scores]
     return batch_boxes_scores
 
@@ -46,9 +48,9 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
     for b_nr, (input, target, img_id) in loop:
         detected = batch_inference(model, input, device, anchor_grid, threshold)    
+        # filter out boxes with score < 0.5
         det_boxes_scores.update({img_id[i].item(): detected[i] for i in range(len(img_id))})
-
-    ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.annotations)
+    ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.transformed_annotations)
     return ap
             
 
@@ -68,7 +70,7 @@ def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, ancho
     with open(out_file, 'w') as f:
         for img_id, boxes_scores in det_boxes_scores.items():
             for box, score in boxes_scores:
-                f.write(f"{img_id} {box.x} {box.y} {box.w} {box.h} {score}\n")
+                f.write(f"{img_id} {box.x1} {box.y1} {box.x2} {box.y2} {score}\n")
 
 
 def step(
@@ -78,6 +80,7 @@ def step(
     img_batch: torch.Tensor,
     lbl_batch: torch.Tensor,
     mining_enabled: bool = False,
+    negative_ratio: float = 2.0,
 ) -> float:
     """Performs one update step for the model
 
@@ -87,7 +90,7 @@ def step(
     
     if mining_enabled:
         unfiltered_loss = criterion(preds, lbl_batch)
-        mask = get_random_sampling_mask(lbl_batch, 2.0)
+        mask = get_random_sampling_mask(lbl_batch, negative_ratio)
         assert unfiltered_loss.shape == mask.shape
         loss = torch.mean(unfiltered_loss * mask)
     else:
@@ -128,6 +131,7 @@ def train_epoch(
     optimizer: optim.Optimizer,
     mining_enabled: bool = False,
     device=torch.device('cpu'),
+    negative_ratio: float = 2.0,
 ):
     model.train()
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
@@ -137,7 +141,7 @@ def train_epoch(
     for b_nr, (input, label_grid, img_id) in loop:
         input, target = input.to(device), label_grid.to(device)
 
-        loss = step(model, criterion, optimizer, input, target, mining_enabled)
+        loss = step(model, criterion, optimizer, input, target, mining_enabled, negative_ratio)
         total_loss += loss
         total_batches += 1
 
@@ -148,40 +152,43 @@ def train_epoch(
 
 def main():
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    LR = 1e-2
+    LR = 1e-3
     MOMENTUM = 0.9
     WEIGHT_DECAY = 0.0005
     BATCH_SIZE = 16
     NUM_WORKERS = 8
-    EPOCHS = 100
+    EPOCHS = 500
     
     IMSIZE = 224
-    SCALE_FACTOR = 8
-    WIDTHS = [IMSIZE * i for i in [1.0, 0.75, 0.5, 0.375, 0.25]]
-    ASPECT_RATIOS = [1.0, 1.5, 2.0, 3.0]
-    MINING_ENABLED = False
+    SCALE_FACTOR = 32
+    WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.3, 0.2]]
+    ASPECT_RATIOS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+    MINING_ENABLED = True
+    NEGATIVE_RATIO = 2.0
+    NSM_THRESHOLD = 0.3
 
     RUN_ROOT_DIR = './runs'
-    run_dir = f'{RUN_ROOT_DIR}/upconv_sf_{SCALE_FACTOR}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/correctannot_filter_0.5_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NSM_THRESHOLD}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
-    train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False)
-    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False)
-    test_dataloader = get_dataloader('./dataset_mmp/test/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=True)
+    train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True)
+    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True)
+    test_dataloader = get_dataloader('./dataset_mmp/test/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=True, apply_transforms_on_init=True)
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
     criterion = torch.nn.CrossEntropyLoss() if not MINING_ENABLED else torch.nn.CrossEntropyLoss(reduction='none')
 
     optimizer = optim.SGD(model.parameters(), lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
+    #optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 
     writer = SummaryWriter(log_dir=run_dir)
 
     best_ap = 0
     for epoch in range(EPOCHS):
-        train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE)
+        train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE, negative_ratio=NEGATIVE_RATIO)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
-        if epoch % 5 == 0:
-            ap = evaluate(model, val_dataloader, DEVICE, anchor_grid)
+        if epoch % 25 == 0:
+            ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, threshold=NSM_THRESHOLD)
             writer.add_scalar('Validation/mAP', ap, global_step=epoch)
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
             if ap > best_ap:
@@ -192,7 +199,7 @@ def main():
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f}")
 
     model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
-    evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'{run_dir}/test_results.txt')
+    evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'{run_dir}/test_results.txt', threshold=NSM_THRESHOLD)
 
 
 if __name__ == '__main__':

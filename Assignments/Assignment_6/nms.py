@@ -57,14 +57,15 @@ def non_maximum_suppression_old(
 def main():
     score_list = pd.read_csv('model_output.txt', header=None, sep=' ', names=['id', 'x1', 'y1', 'x2', 'y2', 'score'], dtype={'id': str, 'x1': int, 'y1': int, 'x2': int, 'y2': int, 'score': float})
     score_list_grouped = score_list.groupby('id')
-    threshold = 0.3
+    threshold = 0.25
     for id, frame in score_list_grouped:
         print(id)
         boxes_scores = []
         for index, row in frame.iterrows():
             boxes_scores.append((AnnotationRect(row['x1'], row['y1'], row['x2'], row['y2']), row['score']))
         filtered_boxes_scores = non_maximum_suppression(boxes_scores, threshold)
-        print(len(filtered_boxes_scores))
+        print(len(boxes_scores), len(filtered_boxes_scores))
+        filtered_boxes_scores = [(box, score) for box, score in filtered_boxes_scores if score > 0.5]
         img = cv2.imread('dataset_mmp/test/' + str(id) + '.jpg')
         img = draw_bounding_boxes(img, [box for box, score in filtered_boxes_scores])
         cv2.imwrite(str(id) + '_nms.jpg', img)

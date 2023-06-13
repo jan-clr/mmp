@@ -17,6 +17,7 @@ def step(
     img_batch: torch.Tensor,
     lbl_batch: torch.Tensor,
     mining_enabled: bool = False,
+    negative_ratio: float = 2.0,
 ) -> float:
     """Performs one update step for the model
 
@@ -26,7 +27,7 @@ def step(
     
     if mining_enabled:
         unfiltered_loss = criterion(preds, lbl_batch)
-        mask = get_random_sampling_mask(lbl_batch, 2.0)
+        mask = get_random_sampling_mask(lbl_batch, negative_ratio)
         assert unfiltered_loss.shape == mask.shape
         loss = torch.mean(unfiltered_loss * mask)
     else:
@@ -67,6 +68,7 @@ def train_epoch(
     optimizer: optim.Optimizer,
     mining_enabled: bool = False,
     device='cpu',
+    negative_ratio: float = 2.0,
 ):
     model.train()
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
@@ -76,7 +78,7 @@ def train_epoch(
     for b_nr, (input, label_grid, img_id) in loop:
         input, target = input.to(device), label_grid.to(device)
 
-        loss = step(model, criterion, optimizer, input, target, mining_enabled)
+        loss = step(model, criterion, optimizer, input, target, mining_enabled, negative_ratio)
         total_loss += loss
         total_batches += 1
 
@@ -129,6 +131,7 @@ def main():
     WIDTHS = [IMSIZE * i for i in [1.0, 0.75, 0.5, 0.375, 0.25]]
     ASPECT_RATIOS = [1.0, 1.5, 2.0, 3.0]
     MINING_ENABLED = False
+
 
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 

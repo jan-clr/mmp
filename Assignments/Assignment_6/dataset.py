@@ -22,6 +22,7 @@ class MMP_Dataset(torch.utils.data.Dataset):
         anchor_grid: np.ndarray,
         min_iou: float,
         is_test: bool,
+        apply_transforms_on_init: bool = False,
     ):
         """
         @param anchor_grid: The anchor grid to be used for every image
@@ -31,24 +32,35 @@ class MMP_Dataset(torch.utils.data.Dataset):
         self.size = image_size
         self.imgs = sorted(glob(os.path.join(path_to_data, '*.jpg')))
         self.annotations = {}
+        self.transformed_annotations = {}
         self.ids = {}
         self.anchor_grid = anchor_grid
         self.is_test = is_test
         self.min_iou = min_iou
 
-        if is_test:
-            return
-
-        for img in self.imgs:
-            gt_file = img.replace('jpg', 'gt_data.txt')
-            annotations = read_groundtruth_file(gt_file)
-
+        for img_file in self.imgs:
             # Get image id
-            img_path = Path(img)
+            img_path = Path(img_file)
             img_id = int(img_path.stem)
 
-            self.ids[img] = img_id
-            self.annotations[img_id] = annotations
+            self.ids[img_file] = img_id
+            if not is_test:
+                # Get annotations
+                gt_file = img_file.replace('jpg', 'gt_data.txt')
+                annotation = read_groundtruth_file(gt_file)
+                self.annotations[img_id] = annotation
+                # If apply_transforms_on_init is True, apply transforms to the annotations beforehand so they are present for multiple workers 
+                if apply_transforms_on_init:
+                    img = Image.open(img_file)
+                    img = TF.to_tensor(img)
+                    c, h, w = img.size()
+                    pad_to = max(h, w)
+                    for i in range(len(annotation)):
+                        box = np.array(annotation[i])
+                        box = (box * (self.size / pad_to)).astype(int)
+                        annotation[i] = AnnotationRect.fromarray(box)
+                    self.transformed_annotations[img_id] = annotation
+
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
         """
@@ -69,11 +81,17 @@ class MMP_Dataset(torch.utils.data.Dataset):
         img_id = self.ids[img_file]
         # Transform annotations
         if not self.is_test:
-            annotation = self.annotations[img_id]
-            for i in range(len(annotation)):
-                box = np.array(annotation[i])
-                box = (box * (self.size / pad_to)).astype(int)
-                annotation[i] = AnnotationRect.fromarray(box)
+            annotation = torch.tensor(0)
+            if img_id in self.transformed_annotations:
+                annotation = self.transformed_annotations[img_id]
+            else:
+                annotation = self.annotations[img_id]
+                for i in range(len(annotation)):
+                    box = np.array(annotation[i])
+                    box = (box * (self.size / pad_to)).astype(int)
+                    annotation[i] = AnnotationRect.fromarray(box)
+                self.transformed_annotations[img_id] = annotation
+                
             label_grid = torch.tensor(get_label_grid(self.anchor_grid, annotation, self.min_iou), dtype=torch.long)
         else:
             label_grid = torch.tensor(0)
@@ -91,9 +109,10 @@ def get_dataloader(
     num_workers: int,
     anchor_grid: np.ndarray,
     is_test: bool,
-    min_iou = 0.7
+    min_iou = 0.7,
+    apply_transforms_on_init: bool = False,
 ) -> DataLoader:
-    dataset = MMP_Dataset(path_to_data, image_size, anchor_grid, min_iou, is_test)
+    dataset = MMP_Dataset(path_to_data, image_size, anchor_grid, min_iou, is_test, apply_transforms_on_init)
     return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, drop_last=(not is_test), shuffle=(not is_test))
 
 
