@@ -13,6 +13,7 @@ import torch.nn as nn
 from torch.utils.tensorboard.writer import SummaryWriter
 from datetime import datetime
 from evallib import calculate_ap_pr
+from pprint import pprint
 
 
 def batch_inference(
@@ -45,8 +46,8 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
     for b_nr, (input, target, img_id) in loop:
         detected = batch_inference(model, input, device, anchor_grid, threshold)    
-        det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
-    
+        det_boxes_scores.update({img_id[i].item(): detected[i] for i in range(len(img_id))})
+
     ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.annotations)
     return ap
             
@@ -62,7 +63,7 @@ def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, ancho
         loop = tqdm(enumerate(loader), total=len(loader), leave=False)
         for b_nr, (input, target, img_id) in loop:
             detected = batch_inference(model, input, device, anchor_grid, threshold)    
-            det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
+            det_boxes_scores.update({f'{img_id[i]:08}': detected[i] for i in range(len(img_id))})
 
     with open(out_file, 'w') as f:
         for img_id, boxes_scores in det_boxes_scores.items():
@@ -166,7 +167,7 @@ def main():
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
     train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False)
-    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=True)
+    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False)
     test_dataloader = get_dataloader('./dataset_mmp/test/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=True)
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
     criterion = torch.nn.CrossEntropyLoss() if not MINING_ENABLED else torch.nn.CrossEntropyLoss(reduction='none')

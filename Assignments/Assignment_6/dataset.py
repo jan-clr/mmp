@@ -31,6 +31,7 @@ class MMP_Dataset(torch.utils.data.Dataset):
         self.size = image_size
         self.imgs = sorted(glob(os.path.join(path_to_data, '*.jpg')))
         self.annotations = {}
+        self.ids = {}
         self.anchor_grid = anchor_grid
         self.is_test = is_test
         self.min_iou = min_iou
@@ -41,7 +42,13 @@ class MMP_Dataset(torch.utils.data.Dataset):
         for img in self.imgs:
             gt_file = img.replace('jpg', 'gt_data.txt')
             annotations = read_groundtruth_file(gt_file)
-            self.annotations[img] = annotations
+
+            # Get image id
+            img_path = Path(img)
+            img_id = int(img_path.stem)
+
+            self.ids[img] = img_id
+            self.annotations[img_id] = annotations
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
         """
@@ -59,9 +66,10 @@ class MMP_Dataset(torch.utils.data.Dataset):
         img = TF.resize(img, [self.size, self.size], antialias=True)
         img = TF.normalize(img, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         
+        img_id = self.ids[img_file]
         # Transform annotations
         if not self.is_test:
-            annotation = self.annotations[img_file]
+            annotation = self.annotations[img_id]
             for i in range(len(annotation)):
                 box = np.array(annotation[i])
                 box = (box * (self.size / pad_to)).astype(int)
@@ -69,10 +77,6 @@ class MMP_Dataset(torch.utils.data.Dataset):
             label_grid = torch.tensor(get_label_grid(self.anchor_grid, annotation, self.min_iou), dtype=torch.long)
         else:
             label_grid = torch.tensor(0)
-
-        # Get image id
-        img_path = Path(img_file)
-        img_id = int(img_path.stem)
 
         return img, label_grid, img_id
 
