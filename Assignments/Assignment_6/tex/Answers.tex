@@ -81,12 +81,22 @@
 
     The PR Curve of a early stage model is shown in figure \ref{fig:6.3}. The curve is representative for a very bad model. Even at high confidence thresholds (low recall), the models precision is less than 1.0, meaning even its most confident guesses are only correct around 65\% of the time. 
     The precision deteriorates very fast with a rising recall, showing that most of the models predictions are wrong.
+    
+    The AP over the training epochs are displayed in \ref{fig:6.3c}.
 
     \begin{figure}[htpb]
         \centering
         \includegraphics[width=0.5\textwidth]{../pr_curve.png}
         \caption{PR Curve on validation set}
         \label{fig:6.3}
+    \end{figure}
+
+    \begin{figure}
+        \begin{center}
+            \includegraphics[width=0.5\textwidth]{../ap_vs_step.png}
+        \end{center}
+        \caption{AP over training epochs}
+        \label{fig:6.3c}
     \end{figure}
 
     \end{document}

@@ -17,7 +17,7 @@ from pprint import pprint
 
 
 def batch_inference(
-    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3, filter_uncertain = True
+    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3, filter_uncertain = True, stretch_factor = 1.0
 ) -> List[List[Tuple[AnnotationRect, float]]]:
     images = images.to(device)
     model.eval()
@@ -28,7 +28,7 @@ def batch_inference(
         for i in range(len(output)):
             boxes_scores = []
             for idx in np.ndindex(output[i][1].shape):
-                boxes_scores.append((AnnotationRect(*anchor_grid[idx]), output[i][1][idx]))
+                boxes_scores.append((AnnotationRect(*(stretch_factor * anchor_grid[idx])), output[i][1][idx]))
             batch_boxes_scores.append(boxes_scores)
 
     if filter_uncertain:
@@ -54,7 +54,7 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
     return ap
             
 
-def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, out_file: str, threshold:float = 0.3): 
+def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, out_file: str, threshold:float = 0.3, stretch_factor:float = 1.0  ): 
     """Generates predictions on the provided test dataset.
     This function saves the predictions to a text file.
     
@@ -64,7 +64,8 @@ def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, ancho
     with torch.no_grad():   
         loop = tqdm(enumerate(loader), total=len(loader), leave=False)
         for b_nr, (input, target, img_id) in loop:
-            detected = batch_inference(model, input, device, anchor_grid, threshold)    
+            detected = batch_inference(model, input, device, anchor_grid, threshold, stretch_factor=stretch_factor)    
+
             det_boxes_scores.update({f'{img_id[i]:08}': detected[i] for i in range(len(img_id))})
 
     with open(out_file, 'w') as f:
