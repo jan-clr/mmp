@@ -159,7 +159,7 @@ def main():
     WEIGHT_DECAY = 0.0005
     BATCH_SIZE = 16
     NUM_WORKERS = 8
-    EPOCHS = 3000
+    EPOCHS = 2000
     
     # Anchor grid parameters
     IMSIZE = 224

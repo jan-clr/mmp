@@ -78,19 +78,14 @@ class MMP_Dataset(torch.utils.data.Dataset):
         if not self.is_test:
             annotation = self.annotations[img_id]
 
-        print(np.array(annotation[0]))
-
         if self.transform is not None:
             sample = wrap_sample(img, annotation)
             sample = self.transform(sample)
             img, annotation = unwrap_sample(sample)
-            print(np.array(annotation[0]))
 
         # Transform image
         c, h, w = img.size()
-        print(c, h, w)
         pad_to = max(h, w)
-        print(pad_to)
         padding = [0, 0, max(0, pad_to - w), max(0, pad_to - h)]
         img = TF.pad(img, padding=padding)
         img = TF.resize(img, [self.size, self.size], antialias=True)
@@ -103,7 +98,6 @@ class MMP_Dataset(torch.utils.data.Dataset):
                 box = (box * (self.size / pad_to)).astype(int)
                 annotation[i] = AnnotationRect.fromarray(box)
                 
-            print(np.array(annotation[0]))
             label_grid = torch.tensor(get_label_grid(self.anchor_grid, annotation, self.min_iou), dtype=torch.long)
         else:
             label_grid = torch.tensor(0)
