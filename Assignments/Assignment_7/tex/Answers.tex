@@ -1,0 +1,102 @@
+\documentclass[
+    headings=optiontohead,              % allows double headers
+    12pt,                               % fontsize 
+    DIV=13,                             % koma script diveider amount. tells koma how much of the site can be written to
+    twoside=false,                      % if set to true, automatically formats as book style with different left and right pages
+    open=right,                         % starting page on twosided texts 
+    BCOR=00mm,                          % correction that accounts for the center of the pages being glued in
+    toc=bibliographynumbered,            % bibliography gets a number and is listed in the table of contents
+    parskip=half,                       % paragraph spacing
+]{scrarticle}
+
+\usepackage{fontspec}
+\usepackage[english]{babel}                     % font that supports English
+\usepackage{upgreek}                            % non-cursive Greek letters
+\usepackage[stretch=10,shrink=10,protrusion=true,expansion=true,final]{microtype} % prettier block format
+\usepackage{hyperref}                           % links for everything
+\usepackage{color}                              % allows for setting in different colors
+\usepackage[autooneside=false,automark]{scrlayer-scrpage} % page-style with "Kolumnentitel" (title of current chapter is displayed at the top)
+\usepackage{amsfonts,amstext,amsmath,amsthm, amssymb} % better math mode (\mathrm and \text) and symbols
+\usepackage[sb]{libertinus}                     % use the font libertinus (needs to be installed from the web)
+%\usepackage[slantedGreek]{libertinust1math}     % math mode improvement for libertinus
+\usepackage{siunitx}                            % physical units setting
+\usepackage{icomma}                             % commas in lists get extra space if needed                        
+\usepackage{xspace}                             % works to improve own commands and provides "\xspace"-command, that puts a space if needed
+\usepackage{ifthen}                             % more control over non-obligatory parameters
+\usepackage{titling}                            % get title values as macros
+\usepackage[onehalfspacing]{setspace}           % control the spacing between lines and in enumeration lists
+\usepackage[backend=biber, style=phys, biblabel=brackets, url=true]{biblatex} % citations with "modern" backend and an physics-accepted citation style
+\usepackage{graphicx}                           % work with graphics 
+\usepackage{ragged2e}                           % ragged-commands (when no block format is wanted)
+\usepackage{pdfpages}                           % allows including of pdfs into this pdf
+\usepackage{booktabs}                           % better table formatting
+\usepackage{multicol}                           % allows for the definition of multi-columns in tables
+\usepackage{multirow}                           % allows for the definition of multirow-tables instead of just multicolumn
+\usepackage[section]{placeins}                  % provides the command "\FloatBarrier" to control the end of floatable regions for figures/tables
+\usepackage{float}                              % provides the "H" option for forcing placement of a figure
+\usepackage{floatpag}                           % make it possible for float-pages to not have a page number
+\usepackage{url}                                % sometimes needed by biblatex, technically no longer needed
+\usepackage{minted}                             % nice code highlighting (needs Python Package to compile!!)
+\usepackage{mathtools}                          % more math control possibilities
+\usepackage{eucal}                              % Different mathcal alphabet
+\usepackage[autostyle=true]{csquotes}           % context-sensitive-quotes -> quotation marks that are set correctly for the context
+\usepackage{physics}                            % bra-ket and more
+\usepackage{nicematrix}                         % label row/cols on matrix
+\usepackage{caption}                            % caption of different environments
+\usepackage{subcaption}                         % subcaptions for figures
+\usepackage{enumitem}                           % better enums
+\usepackage{tikz}                               % Abbildungen zeichnen
+    \usetikzlibrary{positioning}
+\usepackage[toc, page]{appendix}
+%\setmonofont{Fira Code NF}
+%\usepackage{parskip}
+
+\input{../../../texconfig/config.tex}                                  % another file that holds the package/document configuration
+\input{../../../texconfig/format.tex}                                  % another file that holds format information
+\input{../../../texconfig/commands.tex}                                  % another file that holds format information
+
+\title{Assignment Submission 6}
+\author{Jan Claar}
+\date{\today}
+\fakultaeta{Multimedia Computing Lab}
+\teachers{Prof. Dr. Rainer Lienhart, Katja Ludwig, Julian Lorenz}
+
+\begin{document}
+    \head 
+
+    \exercise{6.1}
+
+    The images with bounding boxes having a score larger than 0.5 after NMS are shown in figure \ref{fig:6.1}.
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\textwidth]{../00057796_nms.jpg}
+        \includegraphics[width=0.5\textwidth]{../00139983_nms.jpg}
+        \includegraphics[width=0.5\textwidth]{../00150614_nms.jpg}
+        \includegraphics[width=0.5\textwidth]{../00569021_nms.jpg}
+        \caption{Images with bounding boxes having a score larger than 0.5 after NMS}
+        \label{fig:6.1}
+    \end{figure}
+    
+    \exercise{6.3}
+
+    The PR Curve of a early stage model is shown in figure \ref{fig:6.3}. The curve is representative for a very bad model. Even at high confidence thresholds (low recall), the models precision is less than 1.0, meaning even its most confident guesses are only correct around 65\% of the time. 
+    The precision deteriorates very fast with a rising recall, showing that most of the models predictions are wrong.
+    
+    The AP over the training epochs are displayed in \ref{fig:6.3c}.
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\textwidth]{../pr_curve.png}
+        \caption{PR Curve on validation set}
+        \label{fig:6.3}
+    \end{figure}
+
+    \begin{figure}
+        \begin{center}
+            \includegraphics[width=0.5\textwidth]{../ap_vs_step.png}
+        \end{center}
+        \caption{AP over training epochs}
+        \label{fig:6.3c}
+    \end{figure}
+
+    \end{document}
