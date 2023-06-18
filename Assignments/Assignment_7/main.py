@@ -164,20 +164,21 @@ def main():
     # Anchor grid parameters
     IMSIZE = 224
     SCALE_FACTOR = 32
-    WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.35, 0.3, 0.25, 0.2]]
-    ASPECT_RATIOS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5]
+    WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.3, 0.2]]
+    ASPECT_RATIOS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
 
     MINING_ENABLED = True
     NEGATIVE_RATIO = 2.0
     NSM_THRESHOLD = 0.3
 
     RUN_ROOT_DIR = './runs'
-    run_dir = f'{RUN_ROOT_DIR}/sgd_gridv4_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NSM_THRESHOLD}_nodes_{len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NSM_THRESHOLD}_nodes_{len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
 
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
-    transforms = get_train_transforms(solarize=True, horizontal_flip=True, crop=True)
+    #transforms = get_train_transforms(solarize=True, horizontal_flip=True, crop=True)
+    transforms = None
 
     train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True, transforms=transforms)
     val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True)
