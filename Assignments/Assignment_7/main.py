@@ -19,7 +19,7 @@ from argparse import ArgumentParser
 
 
 def batch_inference(
-    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3, filter_uncertain = False, stretch_factor = 1.0
+    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3, filter_uncertain = True, stretch_factor = 1.0
 ) -> List[List[Tuple[AnnotationRect, float]]]:
     images = images.to(device)
     model.eval()
@@ -163,7 +163,7 @@ def main():
     args = parser.parse_args()
 
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    LR = 1e-4
+    LR = 1e-3
     MOMENTUM = 0.9
     WEIGHT_DECAY = 0.0005
     BATCH_SIZE = 16
