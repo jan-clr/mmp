@@ -15,6 +15,7 @@ from datetime import datetime
 from evallib import calculate_ap_pr
 from pprint import pprint
 from transformations import get_train_transforms
+from argparse import ArgumentParser
 
 
 def batch_inference(
@@ -153,6 +154,14 @@ def train_epoch(
 
 
 def main():
+    parser = ArgumentParser()
+    parser.add_argument('--crop', action='store_true')
+    parser.add_argument('--horizontal_flip', action='store_true')
+    parser.add_argument('--solarize', action='store_true')
+    parser.add_argument('--gauss_blur', action='store_true')
+
+    args = parser.parse_args()
+
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     LR = 1e-4
     MOMENTUM = 0.9
@@ -172,12 +181,12 @@ def main():
     NSM_THRESHOLD = 0.3
 
     RUN_ROOT_DIR = './runs'
-    run_dir = f'{RUN_ROOT_DIR}/sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NSM_THRESHOLD}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NSM_THRESHOLD}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
 
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
-    transforms = get_train_transforms(horizontal_flip=True, crop=True)
+    transforms = get_train_transforms(horizontal_flip=args.horizontal_flip, crop=args.crop, solarize=args.solarize, gaussian_blur=args.gauss_blur)
     #transforms = None
 
     train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True, transforms=transforms)
