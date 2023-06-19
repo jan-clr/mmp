@@ -115,7 +115,7 @@ def get_dataloader(
     num_workers: int,
     anchor_grid: np.ndarray,
     is_test: bool,
-    min_iou = 0.65,
+    min_iou = 0.7,
     transforms = None,
     apply_transforms_on_init: bool = False,
 ) -> DataLoader:
