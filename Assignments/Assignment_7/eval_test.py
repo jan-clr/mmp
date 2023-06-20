@@ -22,7 +22,7 @@ def main():
     BATCH_SIZE = 16
     NUM_WORKERS = 8
     
-    IMSIZE = 224
+    IMSIZE = 320
     SCALE_FACTOR = 32
     WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.3, 0.2]]
     ASPECT_RATIOS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
@@ -37,10 +37,9 @@ def main():
     test_dataloader = get_dataloader('./dataset_mmp/test/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=True, apply_transforms_on_init=True)
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
 
-    writer = SummaryWriter(log_dir=run_dir)
     # Continue Training
-    model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
-    evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'{run_dir}/test_results.txt', threshold=NSM_THRESHOLD, stretch_factor=(320 / 224))
+    #model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
+    evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'test_results.txt', threshold=NSM_THRESHOLD)
 
 
 if __name__ == '__main__':
