@@ -164,12 +164,12 @@ def main():
     args = parser.parse_args()
 
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    LR = 1e-3
+    LR = 1e-4
     MOMENTUM = 0.9
     WEIGHT_DECAY = 0.0005
     BATCH_SIZE = 16
     NUM_WORKERS = 8
-    EPOCHS = 100
+    EPOCHS = 25
     
     # Anchor grid parameters
     IMSIZE = 320
@@ -208,7 +208,7 @@ def main():
     for epoch in range(EPOCHS):
         train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE, negative_ratio=NEGATIVE_RATIO)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
-        if epoch % 10 == 0:
+        if epoch % 2 == 0:
             ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, threshold=NMS_THRESHOLD)
             writer.add_scalar('Validation/mAP', ap, global_step=epoch)
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
