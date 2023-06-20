@@ -184,6 +184,7 @@ def main():
     RUN_ROOT_DIR = './runs'
     run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
+    print(run_dir)
 
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
@@ -206,7 +207,7 @@ def main():
     for epoch in range(EPOCHS):
         train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE, negative_ratio=NEGATIVE_RATIO)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
-        if epoch % 50 == 0:
+        if epoch % 5 == 0:
             ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, threshold=NMS_THRESHOLD)
             writer.add_scalar('Validation/mAP', ap, global_step=epoch)
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
