@@ -19,27 +19,32 @@ from argparse import ArgumentParser
 
 
 def batch_inference(
-    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3, filter_uncertain = True, stretch_factor = 1.0
+        model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3,
+        filter_uncertain=False, stretch_factor=1.0
 ) -> List[List[Tuple[AnnotationRect, float]]]:
     images = images.to(device)
     model.eval()
     with torch.no_grad():
         output = model(images)
+        output = torch.softmax(output, dim=1)
         output = output.cpu().numpy()
         batch_boxes_scores = []
         for i in range(len(output)):
             boxes_scores = []
             for idx in np.ndindex(output[i][1].shape):
+                print(*(stretch_factor * anchor_grid[idx]))
                 boxes_scores.append((AnnotationRect(*(stretch_factor * anchor_grid[idx])), output[i][1][idx]))
             batch_boxes_scores.append(boxes_scores)
 
     if filter_uncertain:
-        batch_boxes_scores = [[(box, score) for box, score in img_boxes_scores if score > 0.5] for img_boxes_scores in batch_boxes_scores]
+        batch_boxes_scores = [[(box, score) for box, score in img_boxes_scores if score > 0.5] for img_boxes_scores in
+                              batch_boxes_scores]
     batch_boxes_scores = [non_maximum_suppression(boxes_scores, threshold) for boxes_scores in batch_boxes_scores]
     return batch_boxes_scores
 
 
-def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, threshold:float = 0.3) -> float:
+def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray,
+             threshold: float = 0.3) -> float:
     """Evaluates a specified model on the whole validation dataset.
 
     @return: AP for the validation set as a float.
@@ -49,24 +54,25 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
     det_boxes_scores = {}
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
     for b_nr, (input, target, img_id) in loop:
-        detected = batch_inference(model, input, device, anchor_grid, threshold)    
+        detected = batch_inference(model, input, device, anchor_grid, threshold)
         # filter out boxes with score < 0.5
         det_boxes_scores.update({img_id[i].item(): detected[i] for i in range(len(img_id))})
-    ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.transformed_annotations)
+    ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.annotations)
     return ap
-            
 
-def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, out_file: str, threshold:float = 0.3, stretch_factor:float = 1.0  ): 
+
+def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, out_file: str,
+                  threshold: float = 0.3, stretch_factor: float = 1.0):
     """Generates predictions on the provided test dataset.
     This function saves the predictions to a text file.
     
     You decide which arguments this function should receive
     """
     det_boxes_scores = {}
-    with torch.no_grad():   
+    with torch.no_grad():
         loop = tqdm(enumerate(loader), total=len(loader), leave=False)
         for b_nr, (input, target, img_id) in loop:
-            detected = batch_inference(model, input, device, anchor_grid, threshold, stretch_factor=stretch_factor)    
+            detected = batch_inference(model, input, device, anchor_grid, threshold, stretch_factor=stretch_factor)
 
             det_boxes_scores.update({f'{img_id[i]:08}': detected[i] for i in range(len(img_id))})
 
@@ -77,20 +83,20 @@ def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, ancho
 
 
 def step(
-    model: MmpNet,
-    criterion,
-    optimizer: optim.Optimizer,
-    img_batch: torch.Tensor,
-    lbl_batch: torch.Tensor,
-    mining_enabled: bool = False,
-    negative_ratio: float = 2.0,
+        model: MmpNet,
+        criterion,
+        optimizer: optim.Optimizer,
+        img_batch: torch.Tensor,
+        lbl_batch: torch.Tensor,
+        mining_enabled: bool = False,
+        negative_ratio: float = 2.0,
 ) -> float:
     """Performs one update step for the model
 
     @return: The loss for the specified batch. Return a float and not a PyTorch tensor
-    """ 
+    """
     preds = model(img_batch)
-    
+
     if mining_enabled:
         unfiltered_loss = criterion(preds, lbl_batch)
         mask = get_random_sampling_mask(lbl_batch, negative_ratio)
@@ -98,7 +104,7 @@ def step(
         loss = torch.mean(unfiltered_loss * mask)
     else:
         loss = criterion(preds, lbl_batch)
-        
+
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -128,13 +134,13 @@ def get_random_sampling_mask(labels: torch.Tensor, neg_ratio: float) -> torch.Te
 
 
 def train_epoch(
-    model: MmpNet,
-    loader: DataLoader,
-    criterion: nn.Module,
-    optimizer: optim.Optimizer,
-    mining_enabled: bool = False,
-    device=torch.device('cpu'),
-    negative_ratio: float = 2.0,
+        model: MmpNet,
+        loader: DataLoader,
+        criterion: nn.Module,
+        optimizer: optim.Optimizer,
+        mining_enabled: bool = False,
+        device=torch.device('cpu'),
+        negative_ratio: float = 2.0,
 ):
     model.train()
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
@@ -169,7 +175,7 @@ def main():
     BATCH_SIZE = 16
     NUM_WORKERS = 8
     EPOCHS = 100
-    
+
     # Anchor grid parameters
     IMSIZE = 320
     SCALE_FACTOR = 32
@@ -182,29 +188,35 @@ def main():
     NMS_THRESHOLD = 0.3
 
     RUN_ROOT_DIR = './runs'
-    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-    #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
+    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) ** 2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    # run_dir = f'{RUN_ROOT_DIR}/best_until_now'
 
-    anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
+    anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR,
+                                  anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
-    transforms = get_train_transforms(horizontal_flip=args.horizontal_flip, crop=args.crop, solarize=args.solarize, gaussian_blur=args.gauss_blur)
-    #transforms = None
+    transforms = get_train_transforms(horizontal_flip=args.horizontal_flip, crop=args.crop, solarize=args.solarize,
+                                      gaussian_blur=args.gauss_blur)
+    # transforms = None
 
-    train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True, transforms=transforms, min_iou=LG_MIN_IOU)
-    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True)
+    train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid,
+                                      is_test=False, apply_transforms_on_init=True, transforms=transforms,
+                                      min_iou=LG_MIN_IOU)
+    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False,
+                                    apply_transforms_on_init=True)
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
     criterion = torch.nn.CrossEntropyLoss() if not MINING_ENABLED else torch.nn.CrossEntropyLoss(reduction='none')
 
     optimizer = optim.SGD(model.parameters(), lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
-    #optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    # optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 
     writer = SummaryWriter(log_dir=run_dir)
     # Continue Training
-    #model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
+    # model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
 
     best_ap = 0
     for epoch in range(EPOCHS):
-        train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE, negative_ratio=NEGATIVE_RATIO)
+        train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED,
+                                 device=DEVICE, negative_ratio=NEGATIVE_RATIO)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
         if epoch % 50 == 0:
             ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, threshold=NMS_THRESHOLD)

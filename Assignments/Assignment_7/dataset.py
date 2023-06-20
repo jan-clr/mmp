@@ -17,14 +17,14 @@ from transformations import wrap_sample, unwrap_sample, get_train_transforms, to
 
 class MMP_Dataset(torch.utils.data.Dataset):
     def __init__(
-        self,
-        path_to_data: str,
-        image_size: int,
-        anchor_grid: np.ndarray,
-        min_iou: float,
-        is_test: bool,
-        apply_transforms_on_init: bool = False,
-        transform=None,
+            self,
+            path_to_data: str,
+            image_size: int,
+            anchor_grid: np.ndarray,
+            min_iou: float,
+            is_test: bool,
+            apply_transforms_on_init: bool = False,
+            transform=None,
     ):
         """
         @param anchor_grid: The anchor grid to be used for every image
@@ -64,7 +64,6 @@ class MMP_Dataset(torch.utils.data.Dataset):
                         annotation[i] = AnnotationRect.fromarray(box)
                     self.transformed_annotations[img_id] = annotation
 
-
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
         """
         @return: 3-tuple of image tensor, label grid, and image (file-)number
@@ -90,14 +89,14 @@ class MMP_Dataset(torch.utils.data.Dataset):
         img = TF.pad(img, padding=padding)
         img = TF.resize(img, [self.size, self.size], antialias=True)
         img = TF.normalize(img, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        
+
         # Transform annotations
         if not self.is_test:
             for i in range(len(annotation)):
                 box = np.array(annotation[i])
                 box = (box * (self.size / pad_to)).astype(int)
                 annotation[i] = AnnotationRect.fromarray(box)
-                
+
             label_grid = torch.tensor(get_label_grid(self.anchor_grid, annotation, self.min_iou), dtype=torch.long)
         else:
             label_grid = torch.tensor(0)
@@ -109,36 +108,44 @@ class MMP_Dataset(torch.utils.data.Dataset):
 
 
 def get_dataloader(
-    path_to_data: str,
-    image_size: int,
-    batch_size: int,
-    num_workers: int,
-    anchor_grid: np.ndarray,
-    is_test: bool,
-    min_iou = 0.5,
-    transforms = None,
-    apply_transforms_on_init: bool = False,
+        path_to_data: str,
+        image_size: int,
+        batch_size: int,
+        num_workers: int,
+        anchor_grid: np.ndarray,
+        is_test: bool,
+        min_iou=0.5,
+        transforms=None,
+        apply_transforms_on_init: bool = False,
 ) -> DataLoader:
-    dataset = MMP_Dataset(path_to_data, image_size, anchor_grid, min_iou, is_test, apply_transforms_on_init, transform=transforms)
-    return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, drop_last=(not is_test), shuffle=(not is_test))
+    dataset = MMP_Dataset(path_to_data, image_size, anchor_grid, min_iou, is_test, apply_transforms_on_init,
+                          transform=transforms)
+    return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, drop_last=(not is_test),
+                      shuffle=(not is_test))
 
 
 def main():
     # Anchor grid parameters
-    IMSIZE = 224
+    IMSIZE = 320
     SCALE_FACTOR = 32
-    WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.35, 0.3, 0.25, 0.2]]
-    ASPECT_RATIOS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5]
+    # WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.35, 0.3, 0.25, 0.2]]
+    # ASPECT_RATIOS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5]
+    WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.3, 0.2]]
+    ASPECT_RATIOS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
 
-    anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
-    transforms = get_train_transforms(crop=True)
+    anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR,
+                                  anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
+    transforms = get_train_transforms()
     print(transforms)
     dataset = MMP_Dataset('./dataset_mmp/train/', IMSIZE, anchor_grid, 0.5, False, False, transforms)
 
     image, target, id = dataset[0]
     image = to_cv2_img(image)
-    idxs = torch.nonzero(target, as_tuple=True)        
-    for box in anchor_grid[idxs]:
+    idxs = torch.nonzero(target, as_tuple=True)
+    boxes = anchor_grid[idxs]
+    if len(boxes.shape) == 1:
+        boxes = np.expand_dims(boxes, axis=0)
+    for box in boxes:
         image = draw_anchor(image, np.array(box))
     cv2.imshow('image', image)
     cv2.waitKey(0)
@@ -146,4 +153,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()  
+    main()
