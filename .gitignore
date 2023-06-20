@@ -2,6 +2,7 @@
 data
 dataset_mmp
 runs    
+runs_old
 __pycache__
 
 ## Core latex/pdflatex auxiliary files:
