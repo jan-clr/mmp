@@ -168,13 +168,14 @@ def main():
     WEIGHT_DECAY = 0.0005
     BATCH_SIZE = 16
     NUM_WORKERS = 8
-    EPOCHS = 2500
+    EPOCHS = 100
     
     # Anchor grid parameters
     IMSIZE = 224
     SCALE_FACTOR = 32
     WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.3, 0.2]]
     ASPECT_RATIOS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+    LG_MIN_IOU = 0.5
 
     MINING_ENABLED = True
     NEGATIVE_RATIO = 2.0
@@ -189,7 +190,7 @@ def main():
     transforms = get_train_transforms(horizontal_flip=args.horizontal_flip, crop=args.crop, solarize=args.solarize, gaussian_blur=args.gauss_blur)
     #transforms = None
 
-    train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True, transforms=transforms)
+    train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True, transforms=transforms, min_iou=LG_MIN_IOU)
     val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True)
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
     criterion = torch.nn.CrossEntropyLoss() if not MINING_ENABLED else torch.nn.CrossEntropyLoss(reduction='none')

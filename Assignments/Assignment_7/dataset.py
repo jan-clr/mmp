@@ -115,7 +115,7 @@ def get_dataloader(
     num_workers: int,
     anchor_grid: np.ndarray,
     is_test: bool,
-    min_iou = 0.7,
+    min_iou = 0.5,
     transforms = None,
     apply_transforms_on_init: bool = False,
 ) -> DataLoader:
@@ -133,7 +133,7 @@ def main():
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
     transforms = get_train_transforms(crop=True)
     print(transforms)
-    dataset = MMP_Dataset('./dataset_mmp/train/', IMSIZE, anchor_grid, 0.7, False, False, transforms)
+    dataset = MMP_Dataset('./dataset_mmp/train/', IMSIZE, anchor_grid, 0.5, False, False, transforms)
 
     image, target, id = dataset[0]
     image = to_cv2_img(image)

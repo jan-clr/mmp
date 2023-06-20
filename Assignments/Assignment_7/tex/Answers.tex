@@ -55,7 +55,7 @@
 \input{../../../texconfig/format.tex}                                  % another file that holds format information
 \input{../../../texconfig/commands.tex}                                  % another file that holds format information
 
-\title{Assignment Submission 6}
+\title{Assignment Submission 7}
 \author{Jan Claar}
 \date{\today}
 \fakultaeta{Multimedia Computing Lab}
@@ -64,39 +64,39 @@
 \begin{document}
     \head 
 
-    \exercise{6.1}
+    \exercise{7.1}
 
-    The images with bounding boxes having a score larger than 0.5 after NMS are shown in figure \ref{fig:6.1}.
+    The images with the augmentations applied are shown in figures \ref{fig:7.1_crop}, \ref{fig:7.1_flip}, \ref{fig:7.1_solarize} and \ref{fig:7.1_gauss}. The augmentations used are from the \texttt{torchvision.transforms.v2} API which supports bounding box data natively. The crop operation that is used is the \texttt{RandomIoUCrop}, which samples regions of the image with one of several 
     \begin{figure}[htpb]
         \centering
-        \includegraphics[width=0.5\textwidth]{../00057796_nms.jpg}
-        \includegraphics[width=0.5\textwidth]{../00139983_nms.jpg}
-        \includegraphics[width=0.5\textwidth]{../00150614_nms.jpg}
-        \includegraphics[width=0.5\textwidth]{../00569021_nms.jpg}
-        \caption{Images with bounding boxes having a score larger than 0.5 after NMS}
-        \label{fig:6.1}
+        \includegraphics[width=0.5\textwidth]{../00000431.jpg}
+        \includegraphics[width=0.5\textwidth]{../00004823.jpg}
+        \caption{Examples for images with crop applied.}
+        \label{fig:7.1_crop}
     \end{figure}
-    
-    \exercise{6.3}
-
-    The PR Curve of a early stage model is shown in figure \ref{fig:6.3}. The curve is representative for a very bad model. Even at high confidence thresholds (low recall), the models precision is less than 1.0, meaning even its most confident guesses are only correct around 65\% of the time. 
-    The precision deteriorates very fast with a rising recall, showing that most of the models predictions are wrong.
-    
-    The AP over the training epochs are displayed in \ref{fig:6.3c}.
-
     \begin{figure}[htpb]
         \centering
-        \includegraphics[width=0.5\textwidth]{../pr_curve.png}
-        \caption{PR Curve on validation set}
-        \label{fig:6.3}
+        \includegraphics[width=0.5\textwidth]{../00011129.jpg}
+        \includegraphics[width=0.5\textwidth]{../00001527.jpg}
+        \caption{Examples for images with flip applied.}
+        \label{fig:7.1_flip}
+    \end{figure}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\textwidth]{../00016099.jpg}
+        \includegraphics[width=0.5\textwidth]{../00015219.jpg}
+        \caption{Examples for images with solarization applied.}
+        \label{fig:7.1_solarize}
+    \end{figure}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\textwidth]{../00010175.jpg}
+        \includegraphics[width=0.5\textwidth]{../00016737.jpg}
+        \caption{Examples for images with gaussian blur applied.}
+        \label{fig:7.1_gauss}
     \end{figure}
 
-    \begin{figure}
-        \begin{center}
-            \includegraphics[width=0.5\textwidth]{../ap_vs_step.png}
-        \end{center}
-        \caption{AP over training epochs}
-        \label{fig:6.3c}
-    \end{figure}
+    \exercise{7.2}
+
 
     \end{document}
