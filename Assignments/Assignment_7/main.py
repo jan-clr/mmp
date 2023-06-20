@@ -171,7 +171,7 @@ def main():
     EPOCHS = 100
     
     # Anchor grid parameters
-    IMSIZE = 224
+    IMSIZE = 320
     SCALE_FACTOR = 32
     WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.3, 0.2]]
     ASPECT_RATIOS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
@@ -179,10 +179,10 @@ def main():
 
     MINING_ENABLED = True
     NEGATIVE_RATIO = 2.0
-    NSM_THRESHOLD = 0.3
+    NMS_THRESHOLD = 0.3
 
     RUN_ROOT_DIR = './runs'
-    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NSM_THRESHOLD}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
 
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
@@ -207,7 +207,7 @@ def main():
         train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE, negative_ratio=NEGATIVE_RATIO)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
         if epoch % 50 == 0:
-            ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, threshold=NSM_THRESHOLD)
+            ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, threshold=NMS_THRESHOLD)
             writer.add_scalar('Validation/mAP', ap, global_step=epoch)
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
             if ap > best_ap:
