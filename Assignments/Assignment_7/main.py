@@ -206,8 +206,8 @@ def main():
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
     criterion = torch.nn.CrossEntropyLoss() if not MINING_ENABLED else torch.nn.CrossEntropyLoss(reduction='none')
 
-    optimizer = optim.SGD(model.parameters(), lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
-    # optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    #optimizer = optim.SGD(model.parameters(), lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
+    optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 
     writer = SummaryWriter(log_dir=run_dir)
     # Continue Training
@@ -218,7 +218,7 @@ def main():
         train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED,
                                  device=DEVICE, negative_ratio=NEGATIVE_RATIO)
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
-        if epoch % 50 == 0:
+        if epoch % 10 == 0:
             ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, threshold=NMS_THRESHOLD)
             writer.add_scalar('Validation/mAP', ap, global_step=epoch)
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
