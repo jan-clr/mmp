@@ -67,7 +67,7 @@ def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, ancho
     with torch.no_grad():   
         loop = tqdm(enumerate(loader), total=len(loader), leave=False)
         for b_nr, (input, target, img_id) in loop:
-            detected = batch_inference(model, input, device, anchor_grid, threshold, stretch_factor=stretch_factor)    
+            detected = batch_inference(model, input, device, anchor_grid, threshold, stretch_factor=stretch_factor, filter_uncertain=False)    
 
             det_boxes_scores.update({f'{img_id[i]:08}': detected[i] for i in range(len(img_id))})
 

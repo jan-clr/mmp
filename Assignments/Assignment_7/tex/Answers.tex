@@ -98,5 +98,18 @@
 
     \exercise{7.2}
 
+    The validation AP values for the different augmentation combinations are shown in figure \ref{fig:7.2}. The combinations chosen are all combinations of augmentations from the previous exercise with at least one geometric augmentation enabled, since the geometric augmentations actually affect the bounding boxes in scale and position, which was thought to have the biggest effect on the data in comparison to the color augmentations. 
+
+    As for the results, it seems that the crop augmentation has a detrimental effect on the final model performance, as the results of runs with crop enabled are markedly worse than the rest, while flip and solarize slightly increase the performance. This could be because the label grid is adapted to boxes in the full image size, which the scaling of the crop changes. This might prevent learning from the cropped patches.
+
+    Overall, the tested augmentation strategies don't improve the models performance much (blue baseline with no augmentations) which might indicate that the augmentation might not be strong enough or the model has already reached its maximum learning capacity in its current architecture.
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\textwidth]{../ap_vs_step.png}
+        \caption{AP vs Step for the different augmentations combinations.}
+        \label{fig:7.2}
+    \end{figure}
+
 
     \end{document}
