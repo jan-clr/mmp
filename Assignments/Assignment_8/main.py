@@ -18,7 +18,7 @@ from argparse import ArgumentParser
 
 
 def batch_inference(
-    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, threshold: float = 0.3, filter_uncertain=True, stretch_factor = 1.0
+    model: MmpNet, images: torch.Tensor, device: torch.device, anchor_grid: np.ndarray, nms_threshold: float = 0.3, filter_threshold=0.0, stretch_factor = 1.0
 ) -> List[List[Tuple[AnnotationRect, float]]]:
     images = images.to(device)
     model.eval()
@@ -33,9 +33,9 @@ def batch_inference(
                 boxes_scores.append((AnnotationRect(*(stretch_factor * anchor_grid[idx])), output[i][1][idx]))
             batch_boxes_scores.append(boxes_scores)
 
-    if filter_uncertain:
+    if filter_threshold > 0.0:
         batch_boxes_scores = [[(box, score) for box, score in img_boxes_scores if score > 0.5] for img_boxes_scores in batch_boxes_scores]
-    batch_boxes_scores = [non_maximum_suppression(boxes_scores, threshold) for boxes_scores in batch_boxes_scores]
+    batch_boxes_scores = [non_maximum_suppression(boxes_scores, nms_threshold) for boxes_scores in batch_boxes_scores]
     return batch_boxes_scores
 
 
@@ -56,7 +56,7 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
     return ap
             
 
-def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, out_file: str, threshold:float = 0.3, stretch_factor:float = 1.0  ): 
+def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, out_file: str, nms_threshold:float = 0.3, stretch_factor:float = 1.0, filter_threshold=0.5):
     """Generates predictions on the provided test dataset.
     This function saves the predictions to a text file.
     
@@ -66,7 +66,7 @@ def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, ancho
     with torch.no_grad():   
         loop = tqdm(enumerate(loader), total=len(loader), leave=False)
         for b_nr, (input, target, img_id) in loop:
-            detected = batch_inference(model, input, device, anchor_grid, threshold, stretch_factor=stretch_factor)    
+            detected = batch_inference(model, input, device, anchor_grid, nms_threshold, stretch_factor=stretch_factor, filter_threshold=filter_threshold)
 
             det_boxes_scores.update({f'{img_id[i]:08}': detected[i] for i in range(len(img_id))})
 

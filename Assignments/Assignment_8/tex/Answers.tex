@@ -1,0 +1,115 @@
+\documentclass[
+    headings=optiontohead,              % allows double headers
+    12pt,                               % fontsize 
+    DIV=13,                             % koma script diveider amount. tells koma how much of the site can be written to
+    twoside=false,                      % if set to true, automatically formats as book style with different left and right pages
+    open=right,                         % starting page on twosided texts 
+    BCOR=00mm,                          % correction that accounts for the center of the pages being glued in
+    toc=bibliographynumbered,            % bibliography gets a number and is listed in the table of contents
+    parskip=half,                       % paragraph spacing
+]{scrarticle}
+
+\usepackage{fontspec}
+\usepackage[english]{babel}                     % font that supports English
+\usepackage{upgreek}                            % non-cursive Greek letters
+\usepackage[stretch=10,shrink=10,protrusion=true,expansion=true,final]{microtype} % prettier block format
+\usepackage{hyperref}                           % links for everything
+\usepackage{color}                              % allows for setting in different colors
+\usepackage[autooneside=false,automark]{scrlayer-scrpage} % page-style with "Kolumnentitel" (title of current chapter is displayed at the top)
+\usepackage{amsfonts,amstext,amsmath,amsthm, amssymb} % better math mode (\mathrm and \text) and symbols
+\usepackage[sb]{libertinus}                     % use the font libertinus (needs to be installed from the web)
+%\usepackage[slantedGreek]{libertinust1math}     % math mode improvement for libertinus
+\usepackage{siunitx}                            % physical units setting
+\usepackage{icomma}                             % commas in lists get extra space if needed                        
+\usepackage{xspace}                             % works to improve own commands and provides "\xspace"-command, that puts a space if needed
+\usepackage{ifthen}                             % more control over non-obligatory parameters
+\usepackage{titling}                            % get title values as macros
+\usepackage[onehalfspacing]{setspace}           % control the spacing between lines and in enumeration lists
+\usepackage[backend=biber, style=phys, biblabel=brackets, url=true]{biblatex} % citations with "modern" backend and an physics-accepted citation style
+\usepackage{graphicx}                           % work with graphics 
+\usepackage{ragged2e}                           % ragged-commands (when no block format is wanted)
+\usepackage{pdfpages}                           % allows including of pdfs into this pdf
+\usepackage{booktabs}                           % better table formatting
+\usepackage{multicol}                           % allows for the definition of multi-columns in tables
+\usepackage{multirow}                           % allows for the definition of multirow-tables instead of just multicolumn
+\usepackage[section]{placeins}                  % provides the command "\FloatBarrier" to control the end of floatable regions for figures/tables
+\usepackage{float}                              % provides the "H" option for forcing placement of a figure
+\usepackage{floatpag}                           % make it possible for float-pages to not have a page number
+\usepackage{url}                                % sometimes needed by biblatex, technically no longer needed
+\usepackage{minted}                             % nice code highlighting (needs Python Package to compile!!)
+\usepackage{mathtools}                          % more math control possibilities
+\usepackage{eucal}                              % Different mathcal alphabet
+\usepackage[autostyle=true]{csquotes}           % context-sensitive-quotes -> quotation marks that are set correctly for the context
+\usepackage{physics}                            % bra-ket and more
+\usepackage{nicematrix}                         % label row/cols on matrix
+\usepackage{caption}                            % caption of different environments
+\usepackage{subcaption}                         % subcaptions for figures
+\usepackage{enumitem}                           % better enums
+\usepackage{tikz}                               % Abbildungen zeichnen
+    \usetikzlibrary{positioning}
+\usepackage[toc, page]{appendix}
+%\setmonofont{Fira Code NF}
+%\usepackage{parskip}
+
+\input{../../../texconfig/config.tex}                                  % another file that holds the package/document configuration
+\input{../../../texconfig/format.tex}                                  % another file that holds format information
+\input{../../../texconfig/commands.tex}                                  % another file that holds format information
+
+\title{Assignment Submission 7}
+\author{Jan Claar}
+\date{\today}
+\fakultaeta{Multimedia Computing Lab}
+\teachers{Prof. Dr. Rainer Lienhart, Katja Ludwig, Julian Lorenz}
+
+\begin{document}
+    \head 
+
+    \exercise{7.1}
+
+    The images with the augmentations applied are shown in figures \ref{fig:7.1_crop}, \ref{fig:7.1_flip}, \ref{fig:7.1_solarize} and \ref{fig:7.1_gauss}. The augmentations used are from the \texttt{torchvision.transforms.v2} API which supports bounding box data natively. The crop operation that is used is the \texttt{RandomIoUCrop}, which samples regions of the image with one of several 
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\textwidth]{../00000431.jpg}
+        \includegraphics[width=0.5\textwidth]{../00004823.jpg}
+        \caption{Examples for images with crop applied.}
+        \label{fig:7.1_crop}
+    \end{figure}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\textwidth]{../00011129.jpg}
+        \includegraphics[width=0.5\textwidth]{../00001527.jpg}
+        \caption{Examples for images with flip applied.}
+        \label{fig:7.1_flip}
+    \end{figure}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\textwidth]{../00016099.jpg}
+        \includegraphics[width=0.5\textwidth]{../00015219.jpg}
+        \caption{Examples for images with solarization applied.}
+        \label{fig:7.1_solarize}
+    \end{figure}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\textwidth]{../00010175.jpg}
+        \includegraphics[width=0.5\textwidth]{../00016737.jpg}
+        \caption{Examples for images with gaussian blur applied.}
+        \label{fig:7.1_gauss}
+    \end{figure}
+
+    \exercise{7.2}
+
+    The validation AP values for the different augmentation combinations are shown in figure \ref{fig:7.2}. The combinations chosen are all combinations of augmentations from the previous exercise with at least one geometric augmentation enabled, since the geometric augmentations actually affect the bounding boxes in scale and position, which was thought to have the biggest effect on the data in comparison to the color augmentations. 
+
+    As for the results, it seems that the crop augmentation has a detrimental effect on the final model performance, as the results of runs with crop enabled are markedly worse than the rest, while flip and solarize slightly increase the performance. This could be because the label grid is adapted to boxes in the full image size, which the scaling of the crop changes. This might prevent learning from the cropped patches.
+
+    Overall, the tested augmentation strategies don't improve the models performance much (blue baseline with no augmentations) which might indicate that the augmentation might not be strong enough or the model has already reached its maximum learning capacity in its current architecture.
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\textwidth]{../ap_vs_step.png}
+        \caption{AP vs Step for the different augmentations combinations.}
+        \label{fig:7.2}
+    \end{figure}
+
+
+    \end{document}
