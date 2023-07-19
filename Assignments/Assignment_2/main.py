@@ -31,7 +31,7 @@ class MmpNet(nn.Module):
     def __init__(self, num_classes: int):
         super(MmpNet, self).__init__()
         self.backbone = m.mobilenet_v2(weights=m.MobileNet_V2_Weights.IMAGENET1K_V2)
-        self.backbone.classifier = nn.Sequential(
+        self.backbone.anchor_branch = nn.Sequential(
                 nn.Dropout(p=0.2),
                 nn.Linear(in_features=1280, out_features=num_classes) 
             )
