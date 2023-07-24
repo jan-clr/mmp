@@ -42,7 +42,7 @@ def get_bbr_loss(
     widths = anchor_boxes[:, 2] - anchor_boxes[:, 0]
     heights = anchor_boxes[:, 3] - anchor_boxes[:, 1]
     divby = torch.stack([widths, heights, widths, heights], dim=1)
-    subtract = torch.stack([anchor_boxes[:, 0], anchor_boxes[:, 1], anchor_boxes[:, 0], anchor_boxes[:, 1]], dim=1)
+    subtract = torch.stack([anchor_boxes[:, 0], anchor_boxes[:, 1], groundtruths[:, 0], groundtruths[:, 1]], dim=1)
     ideal_adjustments = (groundtruths - subtract) / divby
     loss = torch.nn.MSELoss()
     return loss(adjustments, ideal_adjustments)
@@ -74,16 +74,20 @@ def apply_bbr_batch(anchor_boxes: torch.Tensor, adjustments: torch.Tensor) -> to
     widths = anchor_boxes[:, 2] - anchor_boxes[:, 0]
     heights = anchor_boxes[:, 3] - anchor_boxes[:, 1]
     multby = torch.stack([widths, heights, widths, heights], dim=1)
-    subtract = torch.stack([anchor_boxes[:, 0], anchor_boxes[:, 1], anchor_boxes[:, 0], anchor_boxes[:, 1]], dim=1)
-    return (anchor_boxes * multby) + subtract
+    adj_terms = adjustments * multby
+    anchor_boxes = anchor_boxes.type(torch.float32)
+    anchor_boxes[:, :2] += adj_terms[:, :2]
+    anchor_boxes[:, 2:] = anchor_boxes[:, :2] + adj_terms[:, 2:]
+    return anchor_boxes.type(torch.int32)
 
 
 def main():
     anchor_boxes = torch.tensor([[0, 0, 20, 10], [0, 0, 10, 20]])
     adjustments = torch.tensor([[0.05, 0.1, .15, .2], [0.1, 0.05, .2, .15]])
-    groundtruths = torch.tensor([[1, 1, 3, 2], [1, 1, 2, 3]])
+    groundtruths = torch.tensor([[1, 1, 4, 3], [1, 1, 3, 4]])
     for i in range(anchor_boxes.shape[0]):
         print(np.array(apply_bbr(np.array(anchor_boxes[i]), adjustments[i])))
+    print(apply_bbr_batch(anchor_boxes, adjustments))
     print(get_bbr_loss(anchor_boxes, adjustments, groundtruths))
 
 
