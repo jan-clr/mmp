@@ -15,6 +15,12 @@ from evallib import calculate_ap_pr
 from pprint import pprint
 from transformations import get_train_transforms
 from argparse import ArgumentParser
+from bbr import get_bbr_loss, match_boxes_for_bbr, apply_bbr, apply_bbr_batch, get_adjustment_tensor_from_model_output
+from time import time
+import torch.multiprocessing as mp
+
+
+DEBUG = False
 
 
 def batch_inference(
@@ -24,22 +30,35 @@ def batch_inference(
     model.eval()
     with torch.no_grad():
         output = model(images)
-        output = torch.softmax(output, dim=1)
-        output = output.cpu().numpy()
+        anchor_output = torch.softmax(output[0], dim=1)
+        bbr_output = output[1]
+        anchor_output = anchor_output.cpu().numpy()
         batch_boxes_scores = []
-        for i in range(len(output)):
+        st = time()
+        for i in range(len(anchor_output)):
             boxes_scores = []
-            for idx in np.ndindex(output[i][1].shape):
-                boxes_scores.append((AnnotationRect(*(stretch_factor * anchor_grid[idx])), output[i][1][idx]))
+            for idx in np.ndindex(anchor_output[i][1].shape):
+                box = stretch_factor * anchor_grid[idx]
+                adjustments = bbr_output[i][:, idx[0], idx[1], idx[2], idx[3]]
+                box = AnnotationRect.fromarray(box)
+                boxes_scores.append((box, anchor_output[i][1][idx], adjustments))
+            load_time = time()
+            if filter_threshold > 0.0:
+                print(f"Filtering boxes with scores lower than {filter_threshold}.")
+                boxes_scores = [(box, score, adjustment) for box, score, adjustment in boxes_scores if score > 0.5]
+            boxes_scores = non_maximum_suppression(boxes_scores, nms_threshold)
+            nms_time = time()
+            for idx, (box, score, adjustments) in enumerate(boxes_scores):
+                boxes_scores[idx] = (apply_bbr(np.array(box), adjustments), score)
+            bbrt = time()
+            if DEBUG:
+                print(f"Load time: {load_time - st}, NMS time: {nms_time - load_time}, BBR time: {bbrt - nms_time}")
             batch_boxes_scores.append(boxes_scores)
 
-    if filter_threshold > 0.0:
-        batch_boxes_scores = [[(box, score) for box, score in img_boxes_scores if score > 0.5] for img_boxes_scores in batch_boxes_scores]
-    batch_boxes_scores = [non_maximum_suppression(boxes_scores, nms_threshold) for boxes_scores in batch_boxes_scores]
     return batch_boxes_scores
 
 
-def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, threshold:float = 0.3) -> float:
+def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, nms_threshold:float = 0.3, filter_threshold=0.0) -> float:
     """Evaluates a specified model on the whole validation dataset.
 
     @return: AP for the validation set as a float.
@@ -48,10 +67,10 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
     """
     det_boxes_scores = {}
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
-    for b_nr, (input, target, img_id) in loop:
-        detected = batch_inference(model, input, device, anchor_grid, threshold)    
+    for b_nr, (input, target, img_id, annotations) in loop:
+        detected = batch_inference(model, input, device, anchor_grid, nms_threshold, filter_threshold)
         # filter out boxes with score < 0.5
-        det_boxes_scores.update({img_id[i].item(): detected[i] for i in range(len(img_id))})
+        det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
     ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.transformed_annotations)
     return ap
             
@@ -65,7 +84,7 @@ def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, ancho
     det_boxes_scores = {}
     with torch.no_grad():   
         loop = tqdm(enumerate(loader), total=len(loader), leave=False)
-        for b_nr, (input, target, img_id) in loop:
+        for b_nr, (input, target, img_id, annotations) in loop:
             detected = batch_inference(model, input, device, anchor_grid, nms_threshold, stretch_factor=stretch_factor, filter_threshold=filter_threshold)
 
             det_boxes_scores.update({f'{img_id[i]:08}': detected[i] for i in range(len(img_id))})
@@ -82,8 +101,11 @@ def step(
     optimizer: optim.Optimizer,
     img_batch: torch.Tensor,
     lbl_batch: torch.Tensor,
+    annotations: List[List[AnnotationRect]] = [],
+    anchor_grid: torch.Tensor = None,
     mining_enabled: bool = False,
     negative_ratio: float = 2.0,
+    device: torch.device = torch.device("cpu"),
 ) -> float:
     """Performs one update step for the model
 
@@ -92,13 +114,19 @@ def step(
     preds = model(img_batch)
     
     if mining_enabled:
-        unfiltered_loss = criterion(preds, lbl_batch)
+        unfiltered_loss = criterion(preds[0], lbl_batch)
         mask = get_random_sampling_mask(lbl_batch, negative_ratio)
         assert unfiltered_loss.shape == mask.shape
-        loss = torch.mean(unfiltered_loss * mask)
+        anchor_loss = torch.mean(unfiltered_loss * mask)
     else:
-        loss = criterion(preds, lbl_batch)
-        
+        anchor_loss = criterion(preds[0], lbl_batch)
+
+    # make bbr branch only learn from positive samples = near samples
+    adjustments = get_adjustment_tensor_from_model_output(preds[1])
+    boxes, adjustments, gts = match_boxes_for_bbr(adjustments, labels=annotations, label_grid=lbl_batch, anchor_grid=anchor_grid)
+    bbr_loss = get_bbr_loss(boxes, adjustments, gts.to(device))
+
+    loss = anchor_loss * bbr_loss
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -132,6 +160,7 @@ def train_epoch(
     loader: DataLoader,
     criterion: nn.Module,
     optimizer: optim.Optimizer,
+    anchor_grid: np.ndarray,
     mining_enabled: bool = False,
     device=torch.device('cpu'),
     negative_ratio: float = 2.0,
@@ -140,11 +169,12 @@ def train_epoch(
     loop = tqdm(enumerate(loader), total=len(loader), leave=False)
     total_loss = 0
     total_batches = 0
+    anchor_grid = torch.from_numpy(anchor_grid).to(device)
 
-    for b_nr, (input, label_grid, img_id) in loop:
+    for b_nr, (input, label_grid, img_id, annotations) in loop:
         input, target = input.to(device), label_grid.to(device)
 
-        loss = step(model, criterion, optimizer, input, target, mining_enabled, negative_ratio)
+        loss = step(model, criterion, optimizer, input, target, annotations, anchor_grid, mining_enabled, negative_ratio, device)
         total_loss += loss
         total_batches += 1
 
@@ -178,7 +208,7 @@ def main():
     LG_MIN_IOU = 0.5
 
     MINING_ENABLED = True
-    NEGATIVE_RATIO = 2.0
+    NEGATIVE_RATIO = 20.0
     NMS_THRESHOLD = 0.3
 
     RUN_ROOT_DIR = './runs'
@@ -205,10 +235,11 @@ def main():
 
     best_ap = 0
     for epoch in range(EPOCHS):
-        train_loss = train_epoch(model, train_dataloader, criterion, optimizer, mining_enabled=MINING_ENABLED, device=DEVICE, negative_ratio=NEGATIVE_RATIO)
+        train_loss = train_epoch(model, train_dataloader, criterion, optimizer, anchor_grid, mining_enabled=MINING_ENABLED, device=DEVICE, negative_ratio=NEGATIVE_RATIO)
+        #train_loss = 0
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
         if epoch % 2 == 0:
-            ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, threshold=NMS_THRESHOLD)
+            ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, nms_threshold=NMS_THRESHOLD, filter_threshold=0.0)
             writer.add_scalar('Validation/mAP', ap, global_step=epoch)
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
             if ap > best_ap:

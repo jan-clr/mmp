@@ -40,7 +40,7 @@ def main():
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
 
     model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
-    evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'test_results.txt', nms_threshold=NSM_THRESHOLD, filter_threshold=0.5)
+    evaluate_test(model, test_dataloader, DEVICE, anchor_grid, f'test_output.txt', nms_threshold=NSM_THRESHOLD, filter_threshold=0.0)
 
 
 if __name__ == '__main__':

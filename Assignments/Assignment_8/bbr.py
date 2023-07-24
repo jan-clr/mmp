@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from annotation import AnnotationRect
+from typing import List
 
 
 def iou(box1: torch.Tensor, box2: torch.Tensor) -> float:
@@ -18,7 +19,15 @@ def iou(box1: torch.Tensor, box2: torch.Tensor) -> float:
         return area_inter / area_union
 
 
-def match_boxes_for_bbr(model_output: torch.Tensor, labels: torch.Tensor, anchor_grid: np.ndarray, min_iou=0.5):
+def get_adjustment_tensor_from_model_output(model_output: torch.Tensor) -> torch.Tensor:
+    """
+    @param model_output: Output of the model
+    @return: A tensor of shape (batch_size, 4) with the adjustments for each box
+    """
+    return torch.moveaxis(model_output, 1, 5)
+
+
+def match_boxes_for_bbr(adjustments: torch.Tensor, labels: List[List[AnnotationRect]], label_grid: torch.Tensor, anchor_grid: torch.Tensor, min_iou=0.5):
     """
     For each box in the model output, find the box with the highest iou with it in the labels
     and match them together for calculating the bbr loss.
@@ -27,6 +36,26 @@ def match_boxes_for_bbr(model_output: torch.Tensor, labels: torch.Tensor, anchor
     @param labels: Labels for the model output
     @param anchor_grid: Anchor grid
     """
+    boxes = []
+    final_adjustments = []
+    groundtruths = []
+    for i in range(label_grid.shape[0]):
+        indices = torch.where(label_grid[i] == 1)
+        labels_for_image = [torch.tensor(np.array(label)) for label in labels[i]]
+        for (adjustment, box) in zip(adjustments[i][indices], anchor_grid[indices]):
+            best_iou = 0.0
+            best_label = None
+            for label in labels_for_image:
+                iou_value = iou(box, label)
+                if iou_value > best_iou:
+                    best_iou = iou_value
+                    best_label = label
+            if best_iou > min_iou:
+                boxes.append(box)
+                final_adjustments.append(adjustment)
+                groundtruths.append(best_label)
+
+    return torch.stack(boxes), torch.stack(final_adjustments), torch.stack(groundtruths)
 
 
 def get_bbr_loss(
