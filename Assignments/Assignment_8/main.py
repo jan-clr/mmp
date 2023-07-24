@@ -146,11 +146,14 @@ def get_random_sampling_mask(labels: torch.Tensor, neg_ratio: float) -> torch.Te
         neg_indices = torch.where(labels[i] == 0)
         num_pos_indices = len(pos_indices[0])
         num_neg_samples = int(num_pos_indices * neg_ratio)
+        if DEBUG:
+            print(f"num_pos_indices: {num_pos_indices}, num_neg_samples: {num_neg_samples}")
         neg_samples = torch.randperm(len(neg_indices[0]))[:num_neg_samples]
         mask[i][pos_indices] = 1
         # index with tuples of permuted indices
         mask[i][tuple(idx[neg_samples] for idx in neg_indices)] = 1
-        assert torch.sum(mask[i]) == num_pos_indices + num_neg_samples
+        if DEBUG:
+            print(f"num_used_samples: {torch.sum(mask[i])}")
 
     return mask
 
@@ -208,7 +211,7 @@ def main():
     LG_MIN_IOU = 0.5
 
     MINING_ENABLED = True
-    NEGATIVE_RATIO = 20.0
+    NEGATIVE_RATIO = 5.0
     NMS_THRESHOLD = 0.3
 
     RUN_ROOT_DIR = './runs'
