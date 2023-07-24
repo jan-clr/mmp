@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -64,7 +64,7 @@ class MMP_Dataset(torch.utils.data.Dataset):
                         annotation[i] = AnnotationRect.fromarray(box)
                     self.transformed_annotations[img_id] = annotation
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int, List[AnnotationRect]]:
         """
         @return: 3-tuple of image tensor, label grid, and image (file-)number
         """
@@ -101,7 +101,7 @@ class MMP_Dataset(torch.utils.data.Dataset):
         else:
             label_grid = torch.tensor(0)
 
-        return img, label_grid, img_id
+        return img, label_grid, img_id, annotation
 
     def __len__(self) -> int:
         return len(self.imgs)
@@ -121,7 +121,20 @@ def get_dataloader(
     dataset = MMP_Dataset(path_to_data, image_size, anchor_grid, min_iou, is_test, apply_transforms_on_init,
                           transform=transforms)
     return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, drop_last=(not is_test),
-                      shuffle=(not is_test))
+                      shuffle=(not is_test), collate_fn=collate_with_annotations)
+
+
+def collate_with_annotations(batch):
+    """
+    Custom collate function that returns the annotations as well as the images and label grids.
+    """
+    imgs, label_grids, img_ids, annotations = [], [], [], []
+    for img, label_grid, img_id, annotation in batch:
+        imgs.append(img)
+        label_grids.append(label_grid)
+        img_ids.append(img_id)
+        annotations.append(annotation)
+    return torch.stack(imgs), torch.stack(label_grids), img_ids, annotations
 
 
 def main():
@@ -139,7 +152,7 @@ def main():
     print(transforms)
     dataset = MMP_Dataset('./dataset_mmp/train/', IMSIZE, anchor_grid, 0.5, False, False, transforms)
 
-    image, target, id = dataset[0]
+    image, target, id, annotations = dataset[0]
     image = to_cv2_img(image)
     idxs = torch.nonzero(target, as_tuple=True)
     boxes = anchor_grid[idxs]
