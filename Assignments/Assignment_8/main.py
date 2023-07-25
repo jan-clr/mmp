@@ -201,7 +201,7 @@ def main():
     WEIGHT_DECAY = 0.0005
     BATCH_SIZE = 16
     NUM_WORKERS = 8
-    EPOCHS = 25
+    EPOCHS = 50
     
     # Anchor grid parameters
     IMSIZE = 320
@@ -215,7 +215,7 @@ def main():
     NMS_THRESHOLD = 0.3
 
     RUN_ROOT_DIR = './runs'
-    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_adam_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
     print(run_dir)
 
