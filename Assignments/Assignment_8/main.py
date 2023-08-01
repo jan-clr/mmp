@@ -12,15 +12,35 @@ import torch.nn as nn
 from torch.utils.tensorboard.writer import SummaryWriter
 from datetime import datetime
 from evallib import calculate_ap_pr
-from pprint import pprint
 from transformations import get_train_transforms
 from argparse import ArgumentParser
 from bbr import get_bbr_loss, match_boxes_for_bbr, apply_bbr, apply_bbr_batch, get_adjustment_tensor_from_model_output
 from time import time
+from matplotlib import pyplot as plt
 import torch.multiprocessing as mp
 
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+LR = 1e-4
+MOMENTUM = 0.9
+WEIGHT_DECAY = 0.0005
+BATCH_SIZE = 16
+NUM_WORKERS = 8
+EPOCHS = 50
 
+# Anchor grid parameters
+IMSIZE = 320
+SCALE_FACTOR = 32
+WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.3, 0.2]]
+ASPECT_RATIOS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+LG_MIN_IOU = 0.5
+
+MINING_ENABLED = True
+NEGATIVE_RATIO = 5.0
+NMS_THRESHOLD = 0.3
+
+RUN_ROOT_DIR = './runs'
 DEBUG = False
+PLOT_PR_ON_EVAL = True
 
 
 def batch_inference(
@@ -44,7 +64,8 @@ def batch_inference(
                 boxes_scores.append((box, anchor_output[i][1][idx], adjustments))
             load_time = time()
             if filter_threshold > 0.0:
-                print(f"Filtering boxes with scores lower than {filter_threshold}.")
+                if DEBUG:
+                    print(f"Filtering boxes with scores lower than {filter_threshold}.")
                 boxes_scores = [(box, score, adjustment) for box, score, adjustment in boxes_scores if score > 0.5]
             boxes_scores = non_maximum_suppression(boxes_scores, nms_threshold)
             nms_time = time()
@@ -58,7 +79,7 @@ def batch_inference(
     return batch_boxes_scores
 
 
-def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, nms_threshold:float = 0.3, filter_threshold=0.0) -> float:
+def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, nms_threshold:float = 0.3, filter_threshold=0.0, plot_pr=False, save_dir='.', pr_suffix='') -> Tuple[float, np.ndarray, np.ndarray]:
     """Evaluates a specified model on the whole validation dataset.
 
     @return: AP for the validation set as a float.
@@ -71,8 +92,14 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
         detected = batch_inference(model, input, device, anchor_grid, nms_threshold, filter_threshold)
         # filter out boxes with score < 0.5
         det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
-    ap, _, _ = calculate_ap_pr(det_boxes_scores, loader.dataset.transformed_annotations)
-    return ap
+    ap, pr, rc = calculate_ap_pr(det_boxes_scores, loader.dataset.transformed_annotations)
+    if plot_pr:
+        plt.plot(rc, pr)
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.title('Precision-Recall Curve')
+        plt.savefig(f'{save_dir}/pr_curve{pr_suffix}.png')
+    return ap, pr, rc
             
 
 def evaluate_test(model: MmpNet, loader: DataLoader, device: torch.device, anchor_grid: np.ndarray, out_file: str, nms_threshold:float = 0.3, stretch_factor:float = 1.0, filter_threshold=0.5):
@@ -195,27 +222,7 @@ def main():
 
     args = parser.parse_args()
 
-    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    LR = 1e-4
-    MOMENTUM = 0.9
-    WEIGHT_DECAY = 0.0005
-    BATCH_SIZE = 16
-    NUM_WORKERS = 8
-    EPOCHS = 50
-    
-    # Anchor grid parameters
-    IMSIZE = 320
-    SCALE_FACTOR = 32
-    WIDTHS = [IMSIZE * i for i in [0.8, 0.65, 0.5, 0.4, 0.3, 0.2]]
-    ASPECT_RATIOS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
-    LG_MIN_IOU = 0.5
-
-    MINING_ENABLED = True
-    NEGATIVE_RATIO = 5.0
-    NMS_THRESHOLD = 0.3
-
-    RUN_ROOT_DIR = './runs'
-    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_adam_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS ) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) **2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_adam_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) ** 2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
     print(run_dir)
 
@@ -242,7 +249,7 @@ def main():
         #train_loss = 0
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
         if epoch % 2 == 0:
-            ap = evaluate(model, val_dataloader, DEVICE, anchor_grid, nms_threshold=NMS_THRESHOLD, filter_threshold=0.0)
+            ap, _, _ = evaluate(model, val_dataloader, DEVICE, anchor_grid, nms_threshold=NMS_THRESHOLD, filter_threshold=0.0, plot_pr=PLOT_PR_ON_EVAL, save_dir=run_dir, pr_suffix=f'_epoch_{epoch}')
             writer.add_scalar('Validation/mAP', ap, global_step=epoch)
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
             if ap > best_ap:

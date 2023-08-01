@@ -32,7 +32,7 @@ def main():
     RUN_ROOT_DIR = './runs/runs'
     #run_dir = f'{RUN_ROOT_DIR}/correctannot_filter_0.5_sgd_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NSM_THRESHOLD}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
-    run_dir = f'{RUN_ROOT_DIR}/crop_False_flip_True_solarize_True_gauss_False_sgd_gridv3_sf_32_negr2.0_nsm_0.3_lgminiou_0.5_nodes_4800_lr_0.0001_bs_16_2023-06-20_21-36-47'
+    run_dir = f'{RUN_ROOT_DIR}/crop_False_flip_True_solarize_True_gauss_False_adam_gridv3_sf_32_negr15.0_nsm_0.3_lgminiou_0.5_nodes_4800_lr_0.0001_bs_16_2023-07-30_12-39-45'
 
     anchor_grid = get_anchor_grid(int(IMSIZE / SCALE_FACTOR), int(IMSIZE / SCALE_FACTOR), scale_factor=SCALE_FACTOR, anchor_widths=WIDTHS, aspect_ratios=ASPECT_RATIOS)
 
