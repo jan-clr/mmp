@@ -94,6 +94,7 @@ def evaluate(model: MmpNet, loader: DataLoader, device: torch.device, anchor_gri
         det_boxes_scores.update({img_id[i]: detected[i] for i in range(len(img_id))})
     ap, pr, rc = calculate_ap_pr(det_boxes_scores, loader.dataset.transformed_annotations)
     if plot_pr:
+        fig = plt.figure(pr_suffix)
         plt.plot(rc, pr)
         plt.xlabel('Recall')
         plt.ylabel('Precision')
@@ -222,7 +223,7 @@ def main():
 
     args = parser.parse_args()
 
-    run_dir = f'{RUN_ROOT_DIR}/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_adam_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) ** 2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/bn_do/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_adam_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) ** 2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
     print(run_dir)
 
@@ -258,6 +259,9 @@ def main():
                 print(f"New best model saved with mAP {best_ap:.4f}")
         else:
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f}")
+
+    model.load_state_dict(torch.load(f'{run_dir}/best_model.pth'))
+    ap, _, _ = evaluate(model, val_dataloader, DEVICE, anchor_grid, nms_threshold=NMS_THRESHOLD, filter_threshold=0.0, plot_pr=PLOT_PR_ON_EVAL, save_dir=run_dir, pr_suffix=f'_best')
 
 
 if __name__ == '__main__':

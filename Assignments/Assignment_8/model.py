@@ -19,10 +19,18 @@ class MmpNet(torch.nn.Module):
                 #nn.ConvTranspose2d(in_channels=1280, out_channels=256, kernel_size=4, stride=4),
                 #nn.Conv2d(in_channels=1280, out_channels=256, kernel_size=1),
                 # Final output channels = num_classes * num_sizes * num_aspect_ratios * (imsize / scale_factor)
-                nn.Conv2d(in_channels=1280, out_channels=(2 * self.num_sizes * self.num_aspect_ratios), kernel_size=1),
+                nn.Conv2d(in_channels=1280, out_channels=640, kernel_size=1),
+                nn.BatchNorm2d(640),
+                nn.ReLU6(),
+                nn.Dropout(0.2),
+                nn.Conv2d(in_channels=640, out_channels=(2 * self.num_sizes * self.num_aspect_ratios), kernel_size=1),
             )
         self.bbr_branch = nn.Sequential(
-            nn.Conv2d(in_channels=1280, out_channels=(4 * self.num_sizes * self.num_aspect_ratios), kernel_size=1),
+            nn.Conv2d(in_channels=1280, out_channels=640, kernel_size=1),
+            nn.BatchNorm2d(640),
+            nn.ReLU6(),
+            nn.Dropout(0.2),
+            nn.Conv2d(in_channels=640, out_channels=(4 * self.num_sizes * self.num_aspect_ratios), kernel_size=1),
         )
 
     def forward(self, x: torch.Tensor) -> (torch.Tensor, torch.Tensor):
