@@ -20,12 +20,12 @@ from matplotlib import pyplot as plt
 import torch.multiprocessing as mp
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-LR = 1e-4
+LR = 1e-3
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
 BATCH_SIZE = 32
 NUM_WORKERS = 8
-EPOCHS = 30
+EPOCHS = 40
 
 # Anchor grid parameters
 IMSIZE = 320
@@ -233,7 +233,7 @@ def main():
     #transforms = None
 
     train_dataloader = get_dataloader('./dataset_mmp/train/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True, transforms=transforms, min_iou=LG_MIN_IOU)
-    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, BATCH_SIZE, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True)
+    val_dataloader = get_dataloader('./dataset_mmp/val/', IMSIZE, 8, NUM_WORKERS, anchor_grid, is_test=False, apply_transforms_on_init=True)
     model = MmpNet(len(WIDTHS), len(ASPECT_RATIOS), IMSIZE, SCALE_FACTOR).to(DEVICE)
     criterion = torch.nn.CrossEntropyLoss() if not MINING_ENABLED else torch.nn.CrossEntropyLoss(reduction='none')
 
@@ -249,7 +249,7 @@ def main():
         train_loss = train_epoch(model, train_dataloader, criterion, optimizer, anchor_grid, mining_enabled=MINING_ENABLED, device=DEVICE, negative_ratio=NEGATIVE_RATIO)
         #train_loss = 0
         writer.add_scalar('Training/Loss', train_loss, global_step=epoch)
-        if epoch % 2 == 0:
+        if (epoch < 24 and epoch % 3 == 0) or (epoch >= 24 and epoch % 2 == 0):
             ap, _, _ = evaluate(model, val_dataloader, DEVICE, anchor_grid, nms_threshold=NMS_THRESHOLD, filter_threshold=0.0, plot_pr=PLOT_PR_ON_EVAL, save_dir=run_dir, pr_suffix=f'_epoch_{epoch}')
             writer.add_scalar('Validation/mAP', ap, global_step=epoch)
             print(f"Epoch {epoch} - Training Loss: {train_loss:.4f} - Validation mAP: {ap:.4f}")
