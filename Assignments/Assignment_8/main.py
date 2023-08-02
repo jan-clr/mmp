@@ -23,9 +23,9 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 LR = 1e-4
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 NUM_WORKERS = 8
-EPOCHS = 50
+EPOCHS = 30
 
 # Anchor grid parameters
 IMSIZE = 320
