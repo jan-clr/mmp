@@ -4,7 +4,7 @@ import numpy as np
 from nms import non_maximum_suppression
 from annotation import AnnotationRect
 import torch.optim as optim
-from model import MmpNet
+from model import MmpNetDoubleBackbone, MmpNet
 from dataset import get_anchor_grid, get_dataloader
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -23,9 +23,9 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 LR = 1e-3
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 NUM_WORKERS = 8
-EPOCHS = 40
+EPOCHS = 50
 
 # Anchor grid parameters
 IMSIZE = 320
@@ -223,7 +223,7 @@ def main():
 
     args = parser.parse_args()
 
-    run_dir = f'{RUN_ROOT_DIR}/bn_do/crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_adam_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) ** 2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    run_dir = f'{RUN_ROOT_DIR}/bn_do/no_bbr_crop_{args.crop}_flip_{args.horizontal_flip}_solarize_{args.solarize}_gauss_{args.gauss_blur}_adam_gridv3_sf_{SCALE_FACTOR}_negr{NEGATIVE_RATIO}_nsm_{NMS_THRESHOLD}_lgminiou_{LG_MIN_IOU}_nodes_{int(len(WIDTHS) * len(ASPECT_RATIOS) * (IMSIZE / SCALE_FACTOR) ** 2)}_lr_{LR}_bs_{BATCH_SIZE}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     #run_dir = f'{RUN_ROOT_DIR}/best_until_now'
     print(run_dir)
 

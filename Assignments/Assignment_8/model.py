@@ -14,6 +14,8 @@ class MmpNet(torch.nn.Module):
         self.scale_factor = scale_factor
 
         self.backbone = m.mobilenet_v2(weights=m.MobileNet_V2_Weights.IMAGENET1K_V2).features
+        for param in self.backbone.parameters():
+            param.requires_grad = False
         self.anchor_branch = nn.Sequential(
                 # Deconvolution that upsamples the feature map to 28 from 7
                 #nn.ConvTranspose2d(in_channels=1280, out_channels=256, kernel_size=4, stride=4),
@@ -42,6 +44,47 @@ class MmpNet(torch.nn.Module):
         out_shape_bbr = (bs, 4, self.num_sizes, self.num_aspect_ratios, h, w)
 
         return torch.reshape(anchor_output, out_shape_anchor), torch.reshape(bbr_output, out_shape_bbr)
+
+class MmpNetDoubleBackbone(torch.nn.Module):
+    def __init__(self, num_sizes: int, num_aspect_ratios: int, imsize: int=224, scale_factor: int=8):
+        super(MmpNetDoubleBackbone, self).__init__()
+        self.num_sizes = num_sizes
+        self.num_aspect_ratios = num_aspect_ratios
+        self.imsize = imsize
+        self.scale_factor = scale_factor
+
+        self.backbone_anchor = m.mobilenet_v2(weights=m.MobileNet_V2_Weights.IMAGENET1K_V2).features
+        self.backbone_bbr = m.mobilenet_v2(weights=m.MobileNet_V2_Weights.IMAGENET1K_V2).features
+        self.anchor_branch = nn.Sequential(
+            # Deconvolution that upsamples the feature map to 28 from 7
+            #nn.ConvTranspose2d(in_channels=1280, out_channels=256, kernel_size=4, stride=4),
+            #nn.Conv2d(in_channels=1280, out_channels=256, kernel_size=1),
+            # Final output channels = num_classes * num_sizes * num_aspect_ratios * (imsize / scale_factor)
+            nn.Conv2d(in_channels=1280, out_channels=640, kernel_size=1),
+            nn.BatchNorm2d(640),
+            nn.ReLU6(),
+            nn.Dropout(0.2),
+            nn.Conv2d(in_channels=640, out_channels=(2 * self.num_sizes * self.num_aspect_ratios), kernel_size=1),
+        )
+        self.bbr_branch = nn.Sequential(
+            nn.Conv2d(in_channels=1280, out_channels=640, kernel_size=1),
+            nn.BatchNorm2d(640),
+            nn.ReLU6(),
+            nn.Dropout(0.2),
+            nn.Conv2d(in_channels=640, out_channels=(4 * self.num_sizes * self.num_aspect_ratios), kernel_size=1),
+        )
+
+    def forward(self, x: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+        features_anchor = self.backbone_anchor(x)
+        features_bbr = self.backbone_bbr(x)
+        anchor_output = self.anchor_branch(features_anchor)
+        bbr_output = self.bbr_branch(features_bbr)
+        bs, out_chan_anchor, h, w = anchor_output.shape
+        out_shape_anchor = (bs, 2, self.num_sizes, self.num_aspect_ratios, h, w)
+        out_shape_bbr = (bs, 4, self.num_sizes, self.num_aspect_ratios, h, w)
+
+        return torch.reshape(anchor_output, out_shape_anchor), torch.reshape(bbr_output, out_shape_bbr)
+
 
 
 def main():
