@@ -20,12 +20,12 @@ from matplotlib import pyplot as plt
 import torch.multiprocessing as mp
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-LR = 1e-3
+LR = 1e-4
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
-BATCH_SIZE = 16
+BATCH_SIZE = 48
 NUM_WORKERS = 8
-EPOCHS = 50
+EPOCHS = 70
 
 # Anchor grid parameters
 IMSIZE = 320
